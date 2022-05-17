@@ -34,7 +34,7 @@ FONTS =cv.FONT_HERSHEY_COMPLEX
 
 #closed threshold
 CLS_RATIO_THRESHOLD = 4
-CLS_TIME_THRESHOLD = 2000 #ms
+CLS_TIME_THRESHOLD = 1000 #ms
 
 # face bounder indices 
 FACE_OVAL=[ 10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103,67, 109]
@@ -124,11 +124,21 @@ def blinking_detection(start):
     # camera object 
     camera = cv.VideoCapture(0)
 
+    #stopwatches for counting the eyes closure 
+    timer_cls_eyes = StopWatch() 
+    timer_cls_three_times = StopWatch()
+    
+    #counters 
+    eye_cls_counter = 0  
+    three_time_counter = 0 
+    first_time_flag = True
+
+    #eyes closed threshold
+    EYE_CLS_THRESHOLD = 3
 
     with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confidence=0.5) as face_mesh:
-
-        #stopwatch for counting the eyes closure 
-        timer_cls_eyes = StopWatch()    
+ 
+        
         # starting time here 
         start_time = time.time()
         # starting Video loop here.
@@ -152,6 +162,14 @@ def blinking_detection(start):
                     if cls_eyes_flag == False:
                         timer_cls_eyes.start()
                         cls_eyes_flag = True
+                        if first_time_flag:
+                            timer_cls_three_times.start()
+                            first_time_flag = False
+                    if (timer_cls_three_times.elapsed_time > 1000):
+                        timer_cls_three_times.start()
+                        eye_cls_counter = 0
+                        first_time_flag = True
+
                     CEF_COUNTER +=1
                     # cv.putText(frame, 'Blink', (200, 50), FONTS, 1.3, utils.PINK, 2)
                     utils.colorBackgroundText(frame,  f'Blink', FONTS, 1.7, (int(frame_height/2), 100), 2, utils.YELLOW, pad_x=6, pad_y=6, )
@@ -159,21 +177,31 @@ def blinking_detection(start):
                 else:
                     timer_cls_eyes.start()
                     cls_eyes_flag = False
+                    already_closed = False
                     if CEF_COUNTER>CLOSED_EYES_FRAME:
                         TOTAL_BLINKS +=1
                         CEF_COUNTER =0
+                        eye_cls_counter +=1
+                
+                if eye_cls_counter >= EYE_CLS_THRESHOLD:
+                    timer_cls_three_times.start()
+                    three_time_counter += 1 
+                    first_time_flag = True
+                    eye_cls_counter = 0
 
-                if timer_cls_eyes.elapsed_time >= CLS_TIME_THRESHOLD:
+                if (timer_cls_eyes.elapsed_time >= CLS_TIME_THRESHOLD) and (not already_closed):
                     TOTAL_EYES_CLS +=1
                     timer_cls_eyes.start()
+                    already_closed = True
 
 
                 # cv.putText(frame, f'Total Blinks: {TOTAL_BLINKS}', (100, 150), FONTS, 0.6, utils.GREEN, 2)
                 utils.colorBackgroundText(frame,  f'Total Blinks: {TOTAL_BLINKS}', FONTS, 0.7, (30,150),2)
                 utils.colorBackgroundText(frame,  f'Total Closure: {TOTAL_EYES_CLS}', FONTS, 0.7, (30,200),2)
                 utils.colorBackgroundText(frame,  f'RX_THRESHOLD: {rx_eye_threshold}' + f'LX_TRESHOLD: {lx_eye_threshold}', FONTS, 0.7, (30,250),2)
-                utils.colorBackgroundText(frame,  f'RX_VALUE: {rvDistance}' + f'LX_TRESHOLD: {rvDistance}', FONTS, 0.7, (30,300),2)
-                
+                utils.colorBackgroundText(frame,  f'RX_VALUE: {rvDistance}' + f'LX_VALUE: {rvDistance}', FONTS, 0.7, (30,300),2)
+                utils.colorBackgroundText(frame,  f'Total Three Times Closure: {three_time_counter}', FONTS, 0.7, (30,350),2)
+
                 cv.polylines(frame,  [np.array([mesh_coords[p] for p in LEFT_EYE ], dtype=np.int32)], True, utils.GREEN, 1, cv.LINE_AA)
                 cv.polylines(frame,  [np.array([mesh_coords[p] for p in RIGHT_EYE ], dtype=np.int32)], True, utils.GREEN, 1, cv.LINE_AA)
 
@@ -234,6 +262,10 @@ def eyes_calib():
                 calib_eyes_file.write(str(rvDistance) + '\n')
                 lv_eye.append(lvDistance)
                 rv_eye.append(rvDistance)
+
+                time_remained = "{:.2f}".format(10. - (timer_start.elapsed_time/1000))
+                
+                utils.colorBackgroundText(frame,  f'Time Remained: {time_remained}', FONTS, 0.7, (30,100),2)
                 
                 cv.polylines(frame,  [np.array([mesh_coords[p] for p in LEFT_EYE ], dtype=np.int32)], True, utils.GREEN, 1, cv.LINE_AA)
                 cv.polylines(frame,  [np.array([mesh_coords[p] for p in RIGHT_EYE ], dtype=np.int32)], True, utils.GREEN, 1, cv.LINE_AA)
