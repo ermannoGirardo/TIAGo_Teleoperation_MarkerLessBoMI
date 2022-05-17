@@ -39,13 +39,27 @@ from scripts.display_webcam import show_webcam
 from scripts.socket_client import parse_data, send_data, manage_connection_server
 
 #For eye blinkin detection
-from scripts.eye_blink_detector import eyes_calib, init_blinking_detection
+from  scripts.eye_blink_detector import * #eyes_calib, init_blinking_detection
 
 pyautogui.PAUSE = 0.01  # set fps of cursor to 100Hz ish when mouse_enabled is True
 
 #GLOBAL VARIABLES
 lx_threshold = 0
 rx_threshold = 0
+
+# if fsm_state == False --> control the base
+# if fsm_State == True --> control the arm
+fsm_state = False
+
+# if base_teleop == False --> control the base trought odom
+# if base_teleop == True --> control the base trought 'nine regions GUI'
+base_teleop = False
+
+# left_mouse_click variable is managed by eyes closure
+# closing eyes for 1 seconds corresponds to click the mouse
+# clicking the mouse on the odom GUI will publish a target for TIAGo
+left_mouse_click = False
+
 
 class MainApplication(tk.Frame):
     """
@@ -1656,6 +1670,23 @@ def write_practice_files(r, timer_practice):
 
     print('Writing reaching log file thread terminated.')
 
+
+def manage_fsm_state(eye_detector):
+    """
+    This function manage the behaviour of the FSM
+    In particular it is called by eye_blink_detector to change the state of the FSM:
+    1) Closing the eyes for 1s means simulate the left click of the mouse
+    2) Blink three times the eyes in 1s means change the base teleoperation GUI
+    3) Wink means change the teleoperation from the base to the arm and vice versa
+    @param eye_detector: is the object of the Eye_Detector class
+    """
+    global left_mouse_click, fsm_state, base_teleop
+    if eye_detector.cls_eyes == True:
+        left_mouse_click = True
+    if eye_detector.three_times_cls == True:
+        base_teleop = True
+    if eye_detector.wink == True:
+        fsm_state = True
 
 # CODE STARTS HERE
 if __name__ == "__main__":

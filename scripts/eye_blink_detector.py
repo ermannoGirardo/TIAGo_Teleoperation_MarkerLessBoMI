@@ -12,6 +12,7 @@ import time , math,os,threading
 from scripts import utils 
 import numpy as np
 from scripts.stopwatch import StopWatch
+from main_reaching import manage_fsm_state
 
 #open eyes_cls_calib
 path = os.path.dirname(os.path.abspath(__file__)) + "\\..\\calib\\eyes_cls_calib.txt"
@@ -54,6 +55,19 @@ RIGHT_EYEBROW=[ 70, 63, 105, 66, 107, 55, 65, 52, 53, 46 ]
 map_face_mesh = mp.solutions.face_mesh
 # camera object 
 camera = cv.VideoCapture(0)
+
+class Eye_Detector():
+    """
+    Class that group all the functionalities for eye blinkink detector for manage the FSM
+    """
+    def __init__(self):
+        self.cls_eyes = False
+        self.three_times_cls = False
+        self.wink = False
+
+
+#Eye Detector Obj
+eye_detector_fsm = Eye_Detector()
 
 # landmark detection function 
 def landmarksDetection(img, results, draw=False):
@@ -121,6 +135,7 @@ def blinking_detection(start):
 
     global frame_counter, lx_eye_threshold, rx_eye_threshold, map_face_mesh
     global CEF_COUNTER, TOTAL_BLINKS, TOTAL_EYES_CLS, cls_eyes_flag, CLOSED_EYES_FRAME, FONTS,CLS_RATIO_THRESHOLD, LEFT_EYE, RIGHT_EYE
+    global eye_detector_fsm
     # camera object 
     camera = cv.VideoCapture(0)
 
@@ -183,17 +198,24 @@ def blinking_detection(start):
                         CEF_COUNTER =0
                         eye_cls_counter +=1
                 
+                # if statement to detect three closure in 1 seconds
                 if eye_cls_counter >= EYE_CLS_THRESHOLD:
                     timer_cls_three_times.start()
                     three_time_counter += 1 
                     first_time_flag = True
                     eye_cls_counter = 0
+                    eye_detector_fsm.three_times_cls = True
+                    manage_fsm_state(eye_detector_fsm)
+                    eye_detector_fsm.three_times_cls = False
 
+                # if statement to detect eyes closure for 1 second
                 if (timer_cls_eyes.elapsed_time >= CLS_TIME_THRESHOLD) and (not already_closed):
                     TOTAL_EYES_CLS +=1
                     timer_cls_eyes.start()
                     already_closed = True
-
+                    eye_detector_fsm.cls_eyes = True
+                    manage_fsm_state(eye_detector_fsm)
+                    eye_detector_fsm.cls_eyes = False
 
                 # cv.putText(frame, f'Total Blinks: {TOTAL_BLINKS}', (100, 150), FONTS, 0.6, utils.GREEN, 2)
                 utils.colorBackgroundText(frame,  f'Total Blinks: {TOTAL_BLINKS}', FONTS, 0.7, (30,150),2)
