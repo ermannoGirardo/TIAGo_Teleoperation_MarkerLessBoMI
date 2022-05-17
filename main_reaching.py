@@ -38,8 +38,14 @@ from scripts.display_webcam import show_webcam
 #For socket communication
 from scripts.socket_client import parse_data, send_data, manage_connection_server
 
+#For eye blinkin detection
+from scripts.eye_blink_detector import eyes_calib, init_blinking_detection
+
 pyautogui.PAUSE = 0.01  # set fps of cursor to 100Hz ish when mouse_enabled is True
 
+#GLOBAL VARIABLES
+lx_threshold = 0
+rx_threshold = 0
 
 class MainApplication(tk.Frame):
     """
@@ -92,6 +98,12 @@ class MainApplication(tk.Frame):
         self.btn_calib.config(font=("Arial", self.font_size))
         self.btn_calib.grid(row=1, column=0, columnspan=2, padx=20, pady=(20, 30), sticky='nesw')
         self.calib_duration = 3000
+
+        #Eyes Calibration Button
+        self.btn_eyes_calib = Button(parent, text="Eyes Calibration", command=self.eyes_calibration)
+        self.btn_eyes_calib["state"] = "normal"
+        self.btn_eyes_calib.config(font=("Arial", self.font_size))
+        self.btn_eyes_calib.grid(row=2, column=6, columnspan=2, padx=20, pady=(20, 30), sticky='nesw')
 
         #Show webcam button
         self.btn_webcam = Button(parent,text="Show Webcam",command=self.disp_webcam,bg="blue")
@@ -186,7 +198,6 @@ class MainApplication(tk.Frame):
             self.btn_map["state"] = "normal"
             self.btn_custom["state"] = "normal"
             self.btn_start["state"] = "normal"
-            self.btn_tiago_prt["state"] = "normal"
             print('Joints correctly selected.')
 
     def calibration(self):
@@ -195,6 +206,15 @@ class MainApplication(tk.Frame):
         self.master.wait_window(self.w.top)
         compute_calibration(self.calibPath, self.calib_duration, self.lbl_calib, self.num_joints, self.joints)
         self.btn_map["state"] = "normal"
+
+    def eyes_calibration(self):
+        global lx_threshold, rx_threshold
+        # start calibration eyes  dance - collect webcam data
+        self.w = popupWindow(self.master, "You will now start eyes calibration.")
+        self.master.wait_window(self.w.top)
+        lx_threshold, rx_threshold= eyes_calib()
+        self.btn_tiago_prt["state"] = "normal"
+
 
     def train_map(self):
         # check whether calibration file exists first
@@ -259,6 +279,7 @@ class MainApplication(tk.Frame):
             self.newWindow.title("TIAGo Practice")
             self.app = TIAGoPracticeApplication(self.newWindow, self, drPath=self.drPath, num_joints=self.num_joints,
                                                 joints=self.joints, dr_mode=self.dr_mode)
+
         else:
             self.w = popupWindow(self.master, "Compute BoMI map first.")
             self.master.wait_window(self.w.top)
@@ -424,9 +445,15 @@ class TIAGoPracticeApplication(tk.Frame):
         initialize_arm_practice(self, self.dr_mode, self.drPath, self.num_joints, self.joints)
 
     def base_practice(self):
+        global lx_threshold, rx_threshold
         self.w = popupWindow(self.master, "You can now start practicing navigation")
         self.master.wait_window(self.w.top)
-        initialize_base_practice(self, self.dr_mode, self.drPath, self.num_joints, self.joints)
+        #Init Blinkinkg Eyes Detection
+        init_blinking_detection(True,lx_threshold,rx_threshold)
+        
+        #Initialize base_practice
+        # initialize_base_practice(self, self.dr_mode, self.drPath, self.num_joints, self.joints)
+        
 
 
 class popupWindow(object):
