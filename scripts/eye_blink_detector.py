@@ -19,10 +19,12 @@ path = os.path.dirname(os.path.abspath(__file__)) + "\\..\\calib\\eyes_cls_calib
 calib_eyes_file = open(path,"w+")
 
 # variables 
-frame_counter =0
-CEF_COUNTER =0
-TOTAL_BLINKS =0
+frame_counter = 0
+CEF_COUNTER = 0
+CEF_WINK_COUNTER = 0
+TOTAL_BLINKS = 0
 TOTAL_EYES_CLS = 0
+TOTAL_WINK = 0
 cls_eyes_flag = False
 rv_eye = []
 lv_eye = []
@@ -134,22 +136,31 @@ def init_blinking_detection(start,lx_threshold,rx_threshold):
 def blinking_detection(start):
 
     global frame_counter, lx_eye_threshold, rx_eye_threshold, map_face_mesh
-    global CEF_COUNTER, TOTAL_BLINKS, TOTAL_EYES_CLS, cls_eyes_flag, CLOSED_EYES_FRAME, FONTS,CLS_RATIO_THRESHOLD, LEFT_EYE, RIGHT_EYE
+    global CEF_COUNTER, CEF_WINK_COUNTER, TOTAL_BLINKS, TOTAL_EYES_CLS, TOTAL_WINK, cls_eyes_flag, CLOSED_EYES_FRAME, FONTS,CLS_RATIO_THRESHOLD, LEFT_EYE, RIGHT_EYE
     global eye_detector_fsm
+   
+
     # camera object 
     camera = cv.VideoCapture(0)
 
     #stopwatches for counting the eyes closure 
     timer_cls_eyes = StopWatch() 
     timer_cls_three_times = StopWatch()
+    timer_wink = StopWatch()
     
     #counters 
     eye_cls_counter = 0  
     three_time_counter = 0 
     first_time_flag = True
 
+    #flags
+    winking_flag = False
+
     #eyes closed threshold
     EYE_CLS_THRESHOLD = 3
+
+    #eye winking time threshold 
+    WINK_TIME_THRESHOLD = 500 #ms
 
     with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confidence=0.5) as face_mesh:
  
@@ -197,6 +208,22 @@ def blinking_detection(start):
                         TOTAL_BLINKS +=1
                         CEF_COUNTER =0
                         eye_cls_counter +=1
+               
+                #winking
+                if (lvDistance <= lx_eye_threshold) or (rvDistance <= rx_eye_threshold):
+                    if winking_flag == False:
+                        timer_wink.start()
+                        winking_flag = True
+                    
+                    CEF_WINK_COUNTER +=1
+                    utils.colorBackgroundText(frame,  f'Wink', FONTS, 1.7, (int(frame_height/2), 100), 2, utils.YELLOW, pad_x=6, pad_y=6, )
+                else:
+                    timer_wink.start()
+                    winking_flag = False
+                    already_wink = False
+                    if CEF_WINK_COUNTER >CLOSED_EYES_FRAME:
+                        CEF_WINK_COUNTER = 0
+
                 
                 # if statement to detect three closure in 1 seconds
                 if eye_cls_counter >= EYE_CLS_THRESHOLD:
@@ -217,12 +244,22 @@ def blinking_detection(start):
                     manage_fsm_state(eye_detector_fsm)
                     eye_detector_fsm.cls_eyes = False
 
+                # if statement to detect eye wink
+                if (timer_wink.elapsed_time >=  WINK_TIME_THRESHOLD) and (not already_wink):
+                    TOTAL_WINK +=1
+                    timer_wink.start()
+                    already_wink = True
+                    eye_detector_fsm.wink = True
+                    manage_fsm_state(eye_detector_fsm)
+                    eye_detector_fsm.wink = False
+
                 # cv.putText(frame, f'Total Blinks: {TOTAL_BLINKS}', (100, 150), FONTS, 0.6, utils.GREEN, 2)
                 utils.colorBackgroundText(frame,  f'Total Blinks: {TOTAL_BLINKS}', FONTS, 0.7, (30,150),2)
                 utils.colorBackgroundText(frame,  f'Total Closure: {TOTAL_EYES_CLS}', FONTS, 0.7, (30,200),2)
-                utils.colorBackgroundText(frame,  f'RX_THRESHOLD: {rx_eye_threshold}' + f'LX_TRESHOLD: {lx_eye_threshold}', FONTS, 0.7, (30,250),2)
-                utils.colorBackgroundText(frame,  f'RX_VALUE: {rvDistance}' + f'LX_VALUE: {rvDistance}', FONTS, 0.7, (30,300),2)
-                utils.colorBackgroundText(frame,  f'Total Three Times Closure: {three_time_counter}', FONTS, 0.7, (30,350),2)
+                utils.colorBackgroundText(frame,  f'Total Winks: {TOTAL_WINK}', FONTS, 0.7, (30,250),2)
+                utils.colorBackgroundText(frame,  f'RX_THRESHOLD: {rx_eye_threshold}' + f'LX_TRESHOLD: {lx_eye_threshold}', FONTS, 0.7, (30,300),2)
+                utils.colorBackgroundText(frame,  f'RX_VALUE: {rvDistance}' + f'LX_VALUE: {rvDistance}', FONTS, 0.7, (30,350),2)
+                utils.colorBackgroundText(frame,  f'Total Three Times Closure: {three_time_counter}', FONTS, 0.7, (30,400),2)
 
                 cv.polylines(frame,  [np.array([mesh_coords[p] for p in LEFT_EYE ], dtype=np.int32)], True, utils.GREEN, 1, cv.LINE_AA)
                 cv.polylines(frame,  [np.array([mesh_coords[p] for p in RIGHT_EYE ], dtype=np.int32)], True, utils.GREEN, 1, cv.LINE_AA)
