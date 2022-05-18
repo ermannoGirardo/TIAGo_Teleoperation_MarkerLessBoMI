@@ -462,11 +462,9 @@ class TIAGoPracticeApplication(tk.Frame):
         global lx_threshold, rx_threshold
         self.w = popupWindow(self.master, "You can now start practicing navigation")
         self.master.wait_window(self.w.top)
-        #Init Blinkinkg Eyes Detection
-        init_blinking_detection(True,lx_threshold,rx_threshold)
-        
+
         #Initialize base_practice
-        # initialize_base_practice(self, self.dr_mode, self.drPath, self.num_joints, self.joints)
+        initialize_base_practice(self, self.dr_mode, self.drPath, self.num_joints, self.joints)
         
 
 
@@ -947,6 +945,9 @@ def initialize_base_practice(self, dr_mode, drPath, num_joints, joints):
                               args=(holistic, mp_holistic, lock, q_frame, r, num_joints, joints))
     mediapipe_thread.start()
     print("mediapipe thread started in customization.")
+
+    #Init Blinkinkg Eyes Detection
+    init_blinking_detection(True,lx_threshold,rx_threshold, cap)
 
     # Define some colors
     BLACK = (0, 0, 0)

@@ -37,7 +37,7 @@ FONTS =cv.FONT_HERSHEY_COMPLEX
 
 #closed threshold
 CLS_RATIO_THRESHOLD = 4
-CLS_TIME_THRESHOLD = 1000 #ms
+CLS_TIME_THRESHOLD = 1500 #ms
 
 # face bounder indices 
 FACE_OVAL=[ 10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103,67, 109]
@@ -124,16 +124,16 @@ def blinkRatio(img, landmarks, right_indices, left_indices):
     return ratio, lvDistance, rvDistance
 
 
-def init_blinking_detection(start,lx_threshold,rx_threshold):
+def init_blinking_detection(start,lx_threshold,rx_threshold,cap):
     global lx_eye_threshold, rx_eye_threshold
     lx_eye_threshold = lx_threshold
     rx_eye_threshold = rx_threshold
     if start:
         print("Blinking Eyes Detection Thread is starting")
-        blinking_thread = threading.Thread(target=blinking_detection,args=[start])
+        blinking_thread = threading.Thread(target=blinking_detection,args=(start,cap))
         blinking_thread.start()
 
-def blinking_detection(start):
+def blinking_detection(start,cap):
 
     global frame_counter, lx_eye_threshold, rx_eye_threshold, map_face_mesh
     global CEF_COUNTER, CEF_WINK_COUNTER, TOTAL_BLINKS, TOTAL_EYES_CLS, TOTAL_WINK, cls_eyes_flag, CLOSED_EYES_FRAME, FONTS,CLS_RATIO_THRESHOLD, LEFT_EYE, RIGHT_EYE
@@ -141,7 +141,7 @@ def blinking_detection(start):
    
 
     # camera object 
-    camera = cv.VideoCapture(0)
+    # camera = cv.VideoCapture(0)
 
     #stopwatches for counting the eyes closure 
     timer_cls_eyes = StopWatch() 
@@ -160,7 +160,7 @@ def blinking_detection(start):
     EYE_CLS_THRESHOLD = 3
 
     #eye winking time threshold 
-    WINK_TIME_THRESHOLD = 500 #ms
+    WINK_TIME_THRESHOLD = 250 #ms
 
     with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confidence=0.5) as face_mesh:
  
@@ -170,7 +170,7 @@ def blinking_detection(start):
         # starting Video loop here.
         while True:
             frame_counter +=1 # frame counter
-            ret, frame = camera.read() # getting frame from camera 
+            ret, frame = cap.read() # getting frame from camera 
             if not ret: 
                 break # no more frames break
             #  resizing frame
@@ -210,7 +210,7 @@ def blinking_detection(start):
                         eye_cls_counter +=1
                
                 #winking
-                if (lvDistance <= lx_eye_threshold) or (rvDistance <= rx_eye_threshold):
+                if (lvDistance <= lx_eye_threshold) ^ (rvDistance <= rx_eye_threshold):
                     if winking_flag == False:
                         timer_wink.start()
                         winking_flag = True
@@ -278,7 +278,7 @@ def blinking_detection(start):
             if key==ord('q') or key ==ord('Q'):
                 break
         cv.destroyAllWindows()
-        camera.release()
+        cap.release()
         calib_eyes_file.close()
 
 
@@ -357,8 +357,8 @@ def eyes_calib():
         rx_eye_range = max_rv_eye - min_rv_eye
         
         #Compute 20% of the range
-        lx_eye_percent = 0.2 * lx_eye_range
-        rx_eye_percent = 0.2 * rx_eye_range
+        lx_eye_percent = 0.3 * lx_eye_range
+        rx_eye_percent = 0.3 * rx_eye_range
 
         #Add these to the minimum and return the values
         lx_eye_threshold = min_lv_eye + lx_eye_percent
