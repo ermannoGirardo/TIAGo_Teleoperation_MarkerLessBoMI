@@ -1,5 +1,6 @@
 # General imports
 from asyncio.windows_events import CONNECT_PIPE_INIT_DELAY
+from email.mime import base
 from tracemalloc import stop
 from turtle import color
 import numpy as np
@@ -53,7 +54,7 @@ fsm_state = False
 
 # if base_teleop == False --> control the base trought odom
 # if base_teleop == True --> control the base trought 'nine regions GUI'
-base_teleop = False
+base_teleop = True
 
 # left_mouse_click variable is managed by eyes closure
 # closing eyes for 1 seconds corresponds to click the mouse
@@ -449,7 +450,7 @@ class TIAGoPracticeApplication(tk.Frame):
         #/////////////CONNECT WITH SERVER/////////////////////////////#
         #If parameter = True ---> start the connection
         #if parameter = False --> close connection
-        manage_connection_server(True)
+        # manage_connection_server(True)
 
         #////////////////BUTTONS FUNCTION CALLBACK////////////////////////#
 
@@ -902,6 +903,7 @@ def initialize_base_practice(self, dr_mode, drPath, num_joints, joints):
     :param drPath: path to load the BoMI forward map
     :return:
     """
+    global base_teleop
     # Create object of openCV, Reaching class and filter_butter3
     cap = cv2.VideoCapture(0)
     r = Reaching()
@@ -954,6 +956,14 @@ def initialize_base_practice(self, dr_mode, drPath, num_joints, joints):
     GREEN = (0, 255, 0)
     RED = (255,0,0)
     CURSOR = (0.19 * 255, 0.65 * 255, 0.4 * 255)
+    WHITE = (255,255,255)
+
+    #Define variables to create 'odom' GUI
+    point_on_x_axis = np.linspace(0,1800,21)
+    point_on_y_axis = np.linspace(0,900,21)
+
+    neg_index = 10  
+    pos_index = 1
 
     pygame.init()
 
@@ -967,116 +977,255 @@ def initialize_base_practice(self, dr_mode, drPath, num_joints, joints):
     size = (r.base_width, r.base_height)
     screen = pygame.display.set_mode(size)
 
+    #if base_teleop == False --> Display "Nine Regions GUI"
     # -------- Main Program Loop -----------
     while not r.is_terminated:
-        # --- Main event loop
-        for event in pygame.event.get():  # User did something
-            if event.type == pygame.QUIT:  # If user clicked close
-                r.is_terminated = True  # Flag that we are done so we exit this loop
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_x:  # Pressing the x Key will quit the game
-                    r.is_terminated = True
-                if event.key == pygame.K_SPACE:  # Pressing the space Key will click the mouse
-                    pyautogui.click(r.crs_x, r.crs_y)
+        if base_teleop == False:
+            # --- Main event loop
+            for event in pygame.event.get():  # User did something
+                if event.type == pygame.QUIT:  # If user clicked close
+                    r.is_terminated = True  # Flag that we are done so we exit this loop
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_x:  # Pressing the x Key will quit the game
+                        r.is_terminated = True
+                    if event.key == pygame.K_SPACE:  # Pressing the space Key will click the mouse
+                        pyautogui.click(r.crs_x, r.crs_y)
 
-        if not r.is_paused:
-            # Copy old cursor position
-            r.old_crs_x = r.crs_x
-            r.old_crs_y = r.crs_y
+            if not r.is_paused:
+                # Copy old cursor position
+                r.old_crs_x = r.crs_x
+                r.old_crs_y = r.crs_y
 
-            # get current value of body
-            r.body = np.copy(body)
+                # get current value of body
+                r.body = np.copy(body)
 
-            # apply BoMI forward map to body vector to obtain cursor position
-            r.crs_x, r.crs_y = reaching_functions.update_cursor_position_custom(r.body, map, rot, scale, off)
+                # apply BoMI forward map to body vector to obtain cursor position
+                r.crs_x, r.crs_y = reaching_functions.update_cursor_position_custom(r.body, map, rot, scale, off)
 
-            # Apply extra customization according to textbox values (try/except allows to catch invalid inputs)
-            try:
-                rot_custom = int(self.retrieve_txt_rot())
-            except:
-                rot_custom = 0
-            try:
-                gx_custom = float(self.retrieve_txt_gx())
-            except:
-                gx_custom = 1.0
-            try:
-                gy_custom = float(self.retrieve_txt_gy())
-            except:
-                gy_custom = 1.0
-            try:
-                ox_custom = int(self.retrieve_txt_ox())
-            except:
-                ox_custom = 0
-            try:
-                oy_custom = int(self.retrieve_txt_oy())
-            except:
-                oy_custom = 0
+                # Apply extra customization according to textbox values (try/except allows to catch invalid inputs)
+                try:
+                    rot_custom = int(self.retrieve_txt_rot())
+                except:
+                    rot_custom = 0
+                try:
+                    gx_custom = float(self.retrieve_txt_gx())
+                except:
+                    gx_custom = 1.0
+                try:
+                    gy_custom = float(self.retrieve_txt_gy())
+                except:
+                    gy_custom = 1.0
+                try:
+                    ox_custom = int(self.retrieve_txt_ox())
+                except:
+                    ox_custom = 0
+                try:
+                    oy_custom = int(self.retrieve_txt_oy())
+                except:
+                    oy_custom = 0
 
-            # Applying rotation
-            r.crs_x = r.crs_x * np.cos(np.pi / 180 * rot_custom) - r.crs_y * np.sin(np.pi / 180 * rot_custom)
-            r.crs_y = r.crs_x * np.sin(np.pi / 180 * rot_custom) + r.crs_y * np.cos(np.pi / 180 * rot_custom)
-            # Applying scale
-            r.crs_x = r.crs_x * gx_custom
-            r.crs_y = r.crs_y * gy_custom
-            # Applying offset
-            r.crs_x = r.crs_x + ox_custom
-            r.crs_y = r.crs_y + oy_custom
+                # Applying rotation
+                r.crs_x = r.crs_x * np.cos(np.pi / 180 * rot_custom) - r.crs_y * np.sin(np.pi / 180 * rot_custom)
+                r.crs_y = r.crs_x * np.sin(np.pi / 180 * rot_custom) + r.crs_y * np.cos(np.pi / 180 * rot_custom)
+                # Applying scale
+                r.crs_x = r.crs_x * gx_custom
+                r.crs_y = r.crs_y * gy_custom
+                # Applying offset
+                r.crs_x = r.crs_x + ox_custom
+                r.crs_y = r.crs_y + oy_custom
 
-            # Limit cursor workspace
-            if r.crs_x >= r.base_width:
-                r.crs_x = r.base_width
-            if r.crs_x <= 0:
-                r.crs_x = 0
-            if r.crs_y >= r.base_height:
-                r.crs_y = 0
-            if r.crs_y <= 0:
-                r.crs_y = r.base_height
+                # Limit cursor workspace
+                if r.crs_x >= r.base_width:
+                    r.crs_x = r.base_width
+                if r.crs_x <= 0:
+                    r.crs_x = 0
+                if r.crs_y >= r.base_height:
+                    r.crs_y = 0
+                if r.crs_y <= 0:
+                    r.crs_y = r.base_height
 
-            # Filter the cursor
-            r.crs_x, r.crs_y = reaching_functions.filter_cursor(r, filter_curs)
+                # Filter the cursor
+                r.crs_x, r.crs_y = reaching_functions.filter_cursor(r, filter_curs)
 
-            # Set target position to update the GUI
-            #reaching_functions.set_target_reaching_customization(r)
+                # Set target position to update the GUI
+                #reaching_functions.set_target_reaching_customization(r)
 
-            # First, clear the screen to black. In between screen.fill and pygame.display.flip() all the draw
-            screen.fill(BLACK)
+                # First, clear the screen to black. In between screen.fill and pygame.display.flip() all the draw
+                screen.fill(BLACK)
 
-            # draw cursor
-            pygame.draw.circle(screen, CURSOR, (int(r.crs_x), int(r.crs_y)), r.crs_radius)
+                # draw cursor
+                pygame.draw.circle(screen, CURSOR, (int(r.crs_x), int(r.crs_y)), r.crs_radius)
 
-            # draw each separetor bar
-            pygame.draw.rect(screen,GREEN,pygame.Rect(600,0,5,900))
-            pygame.draw.rect(screen,GREEN,pygame.Rect(1200,0,5,900))
-            pygame.draw.rect(screen,GREEN,pygame.Rect(0,300,1800,5))
-            pygame.draw.rect(screen,GREEN,pygame.Rect(0,600,1800,5))
-           
+                # draw each separetor bar
+                pygame.draw.rect(screen,GREEN,pygame.Rect(600,0,5,900))
+                pygame.draw.rect(screen,GREEN,pygame.Rect(1200,0,5,900))
+                pygame.draw.rect(screen,GREEN,pygame.Rect(0,300,1800,5))
+                pygame.draw.rect(screen,GREEN,pygame.Rect(0,600,1800,5))
             
+                
 
-            # --- update region position 
-            reaching_functions.check_region_cursor(r,timer_enter_region)
+                # --- update region position 
+                reaching_functions.check_region_cursor(r,timer_enter_region)
 
-            #-- check stopwatch and compute velocities
-            reaching_functions.check_time_region(r,timer_enter_region)
+                #-- check stopwatch and compute velocities
+                reaching_functions.check_time_region(r,timer_enter_region)
 
-            #Log schermo
-            font = pygame.font.Font('freesansbold.ttf', 35)
-            stampa = "Lin Vel: " + str(r.lin_vel) + " Ang vel: " + str(r.ang_vel)
-            text4 = font.render(stampa,True,BLACK,GREEN)
-            textRect4 = text4.get_rect()
-            textRect4.center = (900,450)
-            screen.blit(text4,textRect4)
+                #Log schermo
+                font = pygame.font.Font('freesansbold.ttf', 35)
+                stampa = "Lin Vel: " + str(r.lin_vel) + " Ang vel: " + str(r.ang_vel)
+                text4 = font.render(stampa,True,BLACK,GREEN)
+                textRect4 = text4.get_rect()
+                textRect4.center = (900,450)
+                screen.blit(text4,textRect4)
 
 
 
-            #parse the string to be send
-            bytes_string = parse_data(r)
-            send_data(bytes_string)
+                #parse the string to be send
+                bytes_string = parse_data(r)
+                send_data(bytes_string)
 
-            # --- update the screen with what we've drawn.
-            pygame.display.flip()
+                # --- update the screen with what we've drawn.
+                pygame.display.flip()
 
-            # --- Limit to 50 frames per second
-            clock.tick(50)
+                # --- Limit to 50 frames per second
+                clock.tick(50)
+
+
+        if base_teleop == True:
+            # --- Main event loop
+            for event in pygame.event.get():  # User did something
+                if event.type == pygame.QUIT:  # If user clicked close
+                    r.is_terminated = True  # Flag that we are done so we exit this loop
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_x:  # Pressing the x Key will quit the game
+                        r.is_terminated = True
+                    if event.key == pygame.K_SPACE:  # Pressing the space Key will click the mouse
+                        pyautogui.click(r.crs_x, r.crs_y)
+
+            if not r.is_paused:
+                # Copy old cursor position
+                r.old_crs_x = r.crs_x
+                r.old_crs_y = r.crs_y
+
+                # get current value of body
+                r.body = np.copy(body)
+
+                # apply BoMI forward map to body vector to obtain cursor position
+                r.crs_x, r.crs_y = reaching_functions.update_cursor_position_custom(r.body, map, rot, scale, off)
+
+                # Apply extra customization according to textbox values (try/except allows to catch invalid inputs)
+                try:
+                    rot_custom = int(self.retrieve_txt_rot())
+                except:
+                    rot_custom = 0
+                try:
+                    gx_custom = float(self.retrieve_txt_gx())
+                except:
+                    gx_custom = 1.0
+                try:
+                    gy_custom = float(self.retrieve_txt_gy())
+                except:
+                    gy_custom = 1.0
+                try:
+                    ox_custom = int(self.retrieve_txt_ox())
+                except:
+                    ox_custom = 0
+                try:
+                    oy_custom = int(self.retrieve_txt_oy())
+                except:
+                    oy_custom = 0
+
+                # Applying rotation
+                r.crs_x = r.crs_x * np.cos(np.pi / 180 * rot_custom) - r.crs_y * np.sin(np.pi / 180 * rot_custom)
+                r.crs_y = r.crs_x * np.sin(np.pi / 180 * rot_custom) + r.crs_y * np.cos(np.pi / 180 * rot_custom)
+                # Applying scale
+                r.crs_x = r.crs_x * gx_custom
+                r.crs_y = r.crs_y * gy_custom
+                # Applying offset
+                r.crs_x = r.crs_x + ox_custom
+                r.crs_y = r.crs_y + oy_custom
+
+                # Limit cursor workspace
+                if r.crs_x >= r.base_width:
+                    r.crs_x = r.base_width
+                if r.crs_x <= 0:
+                    r.crs_x = 0
+                if r.crs_y >= r.base_height:
+                    r.crs_y = 0
+                if r.crs_y <= 0:
+                    r.crs_y = r.base_height
+
+                # Filter the cursor
+                r.crs_x, r.crs_y = reaching_functions.filter_cursor(r, filter_curs)
+
+                # Set target position to update the GUI
+                #reaching_functions.set_target_reaching_customization(r)
+
+                # First, clear the screen to black. In between screen.fill and pygame.display.flip() all the draw
+                screen.fill(WHITE)
+
+                # draw cursor
+                pygame.draw.circle(screen, CURSOR, (int(r.crs_x), int(r.crs_y)), r.crs_radius)
+
+                neg_index = 10  
+                pos_index = 1
+
+                #draw numbers on Cartesian Plane
+                font = pygame.font.Font('freesansbold.ttf', 20)
+                for x_coordinate in point_on_x_axis:
+                    if x_coordinate < 900:
+                        text = font.render( '-' + str(neg_index),True,BLACK,WHITE)
+                        textRect = text.get_rect()
+                        textRect.center = (x_coordinate,490)
+                        screen.blit(text,textRect)
+                        neg_index -= 1
+                    if x_coordinate > 900:
+                        text = font.render(str(pos_index),True,BLACK,WHITE)
+                        textRect = text.get_rect()
+                        textRect.center = (x_coordinate,490)
+                        screen.blit(text,textRect)
+                        pos_index += 1
+
+                pos_index = 10
+                neg_index = 1
+
+                for y_coordinate in point_on_y_axis:
+                    if y_coordinate > 450:
+                        text = font.render( '-' + str(neg_index),True,BLACK,WHITE)
+                        textRect = text.get_rect()
+                        textRect.center = (930,y_coordinate)
+                        screen.blit(text,textRect)
+                        neg_index += 1
+                    if y_coordinate < 450:
+                        text = font.render(str(pos_index),True,BLACK,WHITE)
+                        textRect = text.get_rect()
+                        textRect.center = (930,y_coordinate)
+                        screen.blit(text,textRect)
+                        pos_index -= 1
+
+                pygame.draw.rect(screen,BLACK,pygame.Rect(900,0,5,900))
+                pygame.draw.rect(screen,BLACK,pygame.Rect(0,450,1800,5))
+    
+                 # draw segment on x and y axes
+                for x_coordinate in point_on_x_axis:
+                    pygame.draw.rect(screen,BLACK,pygame.Rect(x_coordinate,443,5,20))
+        
+                for y_coordinate in point_on_y_axis:
+                    pygame.draw.rect(screen,BLACK,pygame.Rect(893,y_coordinate,20,5))
+
+
+                #parse the string to be send
+                bytes_string = parse_data(r)
+                send_data(bytes_string)
+
+                # --- update the screen with what we've drawn.
+                pygame.display.flip()
+
+                # --- Limit to 50 frames per second
+                clock.tick(50)
+
+
+
 
     # Once we have exited the main program loop, stop the game engine and release the capture
     r.control_base = False
@@ -1672,7 +1821,7 @@ def write_practice_files(r, timer_practice):
     print('Writing reaching log file thread terminated.')
 
 
-def manage_fsm_state(eye_detector):
+def manage_fsm_state(eye_detector,total_cls,total_three_blinks, total_winks):
     """
     This function manage the behaviour of the FSM
     In particular it is called by eye_blink_detector to change the state of the FSM:
@@ -1683,11 +1832,20 @@ def manage_fsm_state(eye_detector):
     """
     global left_mouse_click, fsm_state, base_teleop
     if eye_detector.cls_eyes == True:
-        left_mouse_click = True
+        if total_cls % 2 ==0:
+            left_mouse_click = False
+        else:
+            left_mouse_click = True
     if eye_detector.three_times_cls == True:
-        base_teleop = True
+        if total_three_blinks % 2 == 0:
+            base_teleop = False
+        else:
+            base_teleop = True
     if eye_detector.wink == True:
-        fsm_state = True
+        if total_winks % 2 == 0:
+            fsm_state = False
+        else:
+            fsm_state = True
 
 # CODE STARTS HERE
 if __name__ == "__main__":
