@@ -523,7 +523,43 @@ def filt(N, fc, fs, btype, signal):
 
 
 
+def compute_odom_pos(r):
+    """
+    This function, once the cursor position is acquired, it computes the position (x and y) to be 
+    added at the actual position of the robot in order to be send to ROS to assign a target to be reached by TIAGo.
+    :param r is the instance of the reaching class
+    :return odom_x odom_y are the two coordinates to be added to the actual TIAGo position
+    """
+    point_on_x_axis = np.linspace(0,1800,21)
+    delta_x = point_on_x_axis[1] - point_on_x_axis[0]
+    point_on_y_axis = np.linspace(0,900,15)
+    delta_y = point_on_y_axis[1] - point_on_x_axis[0]  
 
+    #select the area where the cursor is
+    #first scan the x-axis
+    for index in len(point_on_x_axis):
+        if (r.crs_x >= point_on_x_axis[index]) and (r.crs_x <= point_on_x_axis[index + 1]):
+            #Compute if it is nearest at index or index + 1
+            if (r.crs_x > point_on_x_axis[index] + delta_x/2):
+                true_index_x = index + 1
+                odom_x = true_index_x - 10
+            else:
+                true_index_x = index
+                odom_x = true_index_x - 10
+
+    
+    #then scan the y-axis
+    for index in len(point_on_y_axis):
+        if (r.crs_y >= point_on_y_axis[index]) and (r.crs_y <= point_on_y_axis[index + 1]):
+            #Compute if it is nearest at index or index + 1
+            if (r.crs_y > point_on_y_axis[index] + delta_y/2):
+                true_index_y = index + 1
+                odom_y = true_index_y - 7
+            else:
+                true_index_y = index
+                odom_y = true_index_x - 7
+
+    return odom_x,odom_y
 
 
 

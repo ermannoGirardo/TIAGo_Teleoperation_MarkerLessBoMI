@@ -167,7 +167,7 @@ class MainApplication(tk.Frame):
         self.btn_start.grid(row=4, column=0, columnspan=2, padx=20, pady=(20, 30), sticky='nesw')
 
         self.btn_tiago_prt = Button(parent,text="TIAGo Practice",command=self.tiago_prt)
-        self.btn_tiago_prt["state"] = "disabled"
+        self.btn_tiago_prt["state"] = "normal"
         self.btn_tiago_prt.config(font=("Arial", self.font_size))
         self.btn_tiago_prt.grid(row=4, column=6, columnspan=2, padx=20, pady=(20, 30), sticky='nesw')
 
@@ -785,6 +785,7 @@ def initialize_customization(self, dr_mode, drPath, num_joints, joints):
     BLACK = (0, 0, 0)
     GREEN = (0, 255, 0)
     CURSOR = (0.19 * 255, 0.65 * 255, 0.4 * 255)
+    
 
     pygame.init()
 
@@ -960,7 +961,7 @@ def initialize_base_practice(self, dr_mode, drPath, num_joints, joints):
 
     #Define variables to create 'odom' GUI
     point_on_x_axis = np.linspace(0,1800,21)
-    point_on_y_axis = np.linspace(0,900,21)
+    point_on_y_axis = np.linspace(0,900,15)
 
     neg_index = 10  
     pos_index = 1
@@ -1090,7 +1091,7 @@ def initialize_base_practice(self, dr_mode, drPath, num_joints, joints):
                 # --- Limit to 50 frames per second
                 clock.tick(50)
 
-
+        # Cartesian Axes 'odom' GUI
         if base_teleop == True:
             # --- Main event loop
             for event in pygame.event.get():  # User did something
@@ -1170,7 +1171,7 @@ def initialize_base_practice(self, dr_mode, drPath, num_joints, joints):
                 neg_index = 10  
                 pos_index = 1
 
-                #draw numbers on Cartesian Plane
+                #draw numbers on the x-axis
                 font = pygame.font.Font('freesansbold.ttf', 20)
                 for x_coordinate in point_on_x_axis:
                     if x_coordinate < 900:
@@ -1186,11 +1187,13 @@ def initialize_base_practice(self, dr_mode, drPath, num_joints, joints):
                         screen.blit(text,textRect)
                         pos_index += 1
 
-                pos_index = 10
+                pos_index = 7
                 neg_index = 1
 
+
+                #draw nubers on the y-axis
                 for y_coordinate in point_on_y_axis:
-                    if y_coordinate > 450:
+                    if y_coordinate > 500:
                         text = font.render( '-' + str(neg_index),True,BLACK,WHITE)
                         textRect = text.get_rect()
                         textRect.center = (930,y_coordinate)
@@ -1202,6 +1205,7 @@ def initialize_base_practice(self, dr_mode, drPath, num_joints, joints):
                         textRect.center = (930,y_coordinate)
                         screen.blit(text,textRect)
                         pos_index -= 1
+                
 
                 pygame.draw.rect(screen,BLACK,pygame.Rect(900,0,5,900))
                 pygame.draw.rect(screen,BLACK,pygame.Rect(0,450,1800,5))
@@ -1212,7 +1216,6 @@ def initialize_base_practice(self, dr_mode, drPath, num_joints, joints):
         
                 for y_coordinate in point_on_y_axis:
                     pygame.draw.rect(screen,BLACK,pygame.Rect(893,y_coordinate,20,5))
-
 
                 #parse the string to be send
                 bytes_string = parse_data(r)
@@ -1837,10 +1840,15 @@ def manage_fsm_state(eye_detector,total_cls,total_three_blinks, total_winks):
         else:
             left_mouse_click = True
     if eye_detector.three_times_cls == True:
-        if total_three_blinks % 2 == 0:
-            base_teleop = False
-        else:
-            base_teleop = True
+        # if total_three_blinks % 2 == 0:
+        #     base_teleop = False
+        # else:
+        #     base_teleop = True
+
+
+        pygame.display.quit()
+        pygame.quit()
+        base_teleop = not(base_teleop)
     if eye_detector.wink == True:
         if total_winks % 2 == 0:
             fsm_state = False
