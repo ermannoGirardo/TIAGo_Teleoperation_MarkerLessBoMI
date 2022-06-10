@@ -1,1 +1,0 @@
-/home/ermanno/tiago_public_ws/devel/.private/pal_device_msgs/share/roseus/ros/pal_device_msgs/srv/TimedFadeEffect.l

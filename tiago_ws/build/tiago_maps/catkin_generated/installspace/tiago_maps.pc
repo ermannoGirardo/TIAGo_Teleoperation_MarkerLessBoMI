@@ -1,8 +1,0 @@
-prefix=/home/ermanno/tiago_public_ws/install
-
-Name: tiago_maps
-Description: Description of tiago_maps
-Version: 2.1.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 

@@ -1,8 +1,0 @@
-prefix=/home/ermanno/tiago_public_ws/install
-
-Name: position_controllers
-Description: Description of position_controllers
-Version: 0.4.6
-Cflags: -I${prefix}/include
-Libs: -L${prefix}/lib -lposition_controllers
-Requires: controller_interface forward_command_controller

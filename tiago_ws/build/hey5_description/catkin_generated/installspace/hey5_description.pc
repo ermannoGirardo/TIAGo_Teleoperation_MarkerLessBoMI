@@ -1,8 +1,0 @@
-prefix=/home/ermanno/tiago_public_ws/install
-
-Name: hey5_description
-Description: Description of hey5_description
-Version: 1.0.3
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 

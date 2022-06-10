@@ -1,1 +1,0 @@
-/home/ermanno/tiago_public_ws/devel/.private/humanoid_nav_msgs/share/roseus/ros/humanoid_nav_msgs/msg/ExecFootstepsActionGoal.l

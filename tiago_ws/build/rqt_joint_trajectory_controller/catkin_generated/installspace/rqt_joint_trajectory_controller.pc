@@ -1,8 +1,0 @@
-prefix=/home/ermanno/tiago_public_ws/install
-
-Name: rqt_joint_trajectory_controller
-Description: Description of rqt_joint_trajectory_controller
-Version: 0.4.6
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 

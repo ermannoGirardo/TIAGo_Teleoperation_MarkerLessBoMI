@@ -1,6 +1,0 @@
-devel_space: /home/ermanno/tiago_public_ws/devel
-install: false
-install_space: /home/ermanno/tiago_public_ws/install
-profile: default
-source_space: /home/ermanno/tiago_public_ws/src
-workspace: /home/ermanno/tiago_public_ws

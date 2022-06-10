@@ -1,1 +1,0 @@
-/home/ermanno/tiago_public_ws/devel/.private/pal_walking_msgs/share/roseus/ros/pal_walking_msgs/srv/MoveHipFeet.l

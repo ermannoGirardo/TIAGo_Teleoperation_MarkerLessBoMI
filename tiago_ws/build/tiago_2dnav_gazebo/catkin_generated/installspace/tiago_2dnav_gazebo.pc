@@ -1,8 +1,0 @@
-prefix=/home/ermanno/tiago_public_ws/install
-
-Name: tiago_2dnav_gazebo
-Description: Description of tiago_2dnav_gazebo
-Version: 2.2.5
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 
