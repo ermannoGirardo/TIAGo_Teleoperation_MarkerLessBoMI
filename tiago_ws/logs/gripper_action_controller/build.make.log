@@ -1,0 +1,3 @@
+[  0%] Built target gripper_action_controller_xacro_generated_to_devel_space_
+[ 50%] [32m[1mLinking CXX shared library /home/ermanno/tiago_public_ws/devel/.private/gripper_action_controller/lib/libgripper_action_controller.so[0m
+[100%] Built target gripper_action_controller

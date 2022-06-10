@@ -1,0 +1,4 @@
+[ 12%] [32m[1mLinking CXX shared library /home/ermanno/tiago_public_ws/devel/.private/gazebo_ros_control/lib/libgazebo_ros_control.so[0m
+[ 25%] Built target gazebo_ros_control
+[ 37%] [32m[1mLinking CXX shared library /home/ermanno/tiago_public_ws/devel/.private/gazebo_ros_control/lib/libdefault_robot_hw_sim.so[0m
+[100%] Built target default_robot_hw_sim

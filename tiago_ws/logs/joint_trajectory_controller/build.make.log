@@ -1,0 +1,2 @@
+[ 50%] [32m[1mLinking CXX shared library /home/ermanno/tiago_public_ws/devel/.private/joint_trajectory_controller/lib/libjoint_trajectory_controller.so[0m
+[100%] Built target joint_trajectory_controller

@@ -1,0 +1,8 @@
+prefix=/home/ermanno/tiago_public_ws/devel/.private/tiago_bringup
+
+Name: tiago_bringup
+Description: Description of tiago_bringup
+Version: 2.2.10
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

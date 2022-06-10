@@ -1,0 +1,11 @@
+Symlinking /home/ermanno/tiago_public_ws/devel/include/social_navigation_layers/ProxemicLayerConfig.h
+Symlinking /home/ermanno/tiago_public_ws/devel/lib/libsocial_layers.so
+Symlinking /home/ermanno/tiago_public_ws/devel/lib/python2.7/dist-packages/social_navigation_layers/__init__.py
+Symlinking /home/ermanno/tiago_public_ws/devel/lib/python2.7/dist-packages/social_navigation_layers/cfg/ProxemicLayerConfig.py
+Symlinking /home/ermanno/tiago_public_ws/devel/lib/python2.7/dist-packages/social_navigation_layers/cfg/__init__.py
+Symlinking /home/ermanno/tiago_public_ws/devel/lib/pkgconfig/social_navigation_layers.pc
+Symlinking /home/ermanno/tiago_public_ws/devel/share/social_navigation_layers/cmake/social_navigation_layersConfig-version.cmake
+Symlinking /home/ermanno/tiago_public_ws/devel/share/social_navigation_layers/cmake/social_navigation_layersConfig.cmake
+Symlinking /home/ermanno/tiago_public_ws/devel/share/social_navigation_layers/docs/ProxemicLayerConfig.wikidoc
+Symlinking /home/ermanno/tiago_public_ws/devel/share/social_navigation_layers/docs/ProxemicLayerConfig.dox
+Symlinking /home/ermanno/tiago_public_ws/devel/share/social_navigation_layers/docs/ProxemicLayerConfig-usage.dox
