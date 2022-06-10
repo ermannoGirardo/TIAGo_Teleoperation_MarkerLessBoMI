@@ -1,0 +1,5 @@
+      PID    PPID    PGID     WINPID   TTY         UID    STIME COMMAND
+    18356       1   18356      25912  pty0      197609 16:01:47 /c/WINDOWS/py
+    22140   21132   22140      20968  pty1      197609 16:13:38 /usr/bin/bash
+    10692   22140   10692      20552  pty1      197609 16:13:38 /usr/bin/PS
+    21132       1   21132      21132  ?         197609 16:13:37 /usr/bin/mintty
