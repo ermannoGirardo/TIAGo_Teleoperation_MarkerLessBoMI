@@ -1,0 +1,4 @@
+Symlinking /home/ermanno/tiago_public_ws/devel/lib/libactuator_state_controller.so
+Symlinking /home/ermanno/tiago_public_ws/devel/lib/pkgconfig/actuator_state_controller.pc
+Symlinking /home/ermanno/tiago_public_ws/devel/share/actuator_state_controller/cmake/actuator_state_controllerConfig-version.cmake
+Symlinking /home/ermanno/tiago_public_ws/devel/share/actuator_state_controller/cmake/actuator_state_controllerConfig.cmake

@@ -1,0 +1,17 @@
+[  6%] [32m[1mLinking CXX shared library /home/ermanno/tiago_public_ws/devel/.private/pal_gazebo_plugins/lib/libpal_gazebo_collisions.so[0m
+[ 12%] Built target pal_gazebo_collisions
+[ 18%] [32m[1mLinking CXX shared library /home/ermanno/tiago_public_ws/devel/.private/pal_gazebo_plugins/lib/libgazebo_world_odometry.so[0m
+[ 25%] Built target gazebo_world_odometry
+[ 31%] [32m[1mLinking CXX shared library /home/ermanno/tiago_public_ws/devel/.private/pal_gazebo_plugins/lib/libgazebo_harness.so[0m
+[ 37%] Built target gazebo_harness
+[ 43%] [32m[1mLinking CXX shared library /home/ermanno/tiago_public_ws/devel/.private/pal_gazebo_plugins/lib/libgazebo_pal_hand.so[0m
+[ 50%] Built target gazebo_pal_hand
+[ 50%] Built target pal_multirobot_msgs_generate_messages_cpp
+[ 56%] [32m[1mLinking CXX shared library /home/ermanno/tiago_public_ws/devel/.private/pal_gazebo_plugins/lib/libgazebo_ros_forcetorque.so[0m
+[ 62%] [32m[1mLinking CXX shared library /home/ermanno/tiago_public_ws/devel/.private/pal_gazebo_plugins/lib/libgazebo_underactuated_finger.so[0m
+[ 68%] Built target gazebo_underactuated_finger
+[ 75%] [32m[1mLinking CXX shared library /home/ermanno/tiago_public_ws/devel/.private/pal_gazebo_plugins/lib/libgazebo_attachment.so[0m
+[ 81%] Built target gazebo_ros_forcetorque
+[ 87%] [32m[1mLinking CXX shared library /home/ermanno/tiago_public_ws/devel/.private/pal_gazebo_plugins/lib/libgazebo_wifi_ap.so[0m
+[ 93%] Built target gazebo_attachment
+[100%] Built target gazebo_wifi_ap

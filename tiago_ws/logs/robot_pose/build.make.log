@@ -1,0 +1,6 @@
+[ 16%] [32m[1mLinking CXX executable /home/ermanno/tiago_public_ws/devel/.private/robot_pose/lib/robot_pose/distance_publisher_node[0m
+[ 33%] Built target distance_publisher_node
+[ 50%] [32m[1mLinking CXX executable /home/ermanno/tiago_public_ws/devel/.private/robot_pose/lib/robot_pose/fake_odom_publisher[0m
+[ 66%] Built target fake_odom_publisher
+[ 83%] [32m[1mLinking CXX executable /home/ermanno/tiago_public_ws/devel/.private/robot_pose/lib/robot_pose/robot_pose_node[0m
+[100%] Built target robot_pose_node

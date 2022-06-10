@@ -1,0 +1,4 @@
+[ 25%] [32m[1mLinking CXX executable /home/ermanno/tiago_public_ws/devel/.private/joint_torque_sensor_state_controller/lib/joint_torque_sensor_state_controller/joint_state_relay_without_nans[0m
+[ 50%] Built target joint_state_relay_without_nans
+[ 75%] [32m[1mLinking CXX shared library /home/ermanno/tiago_public_ws/devel/.private/joint_torque_sensor_state_controller/lib/libjoint_torque_sensor_state_controller.so[0m
+[100%] Built target joint_torque_sensor_state_controller
