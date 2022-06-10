@@ -1,8 +1,0 @@
-prefix=/home/ermanno/tiago_public_ws/devel/.private/pmb2_bringup
-
-Name: pmb2_bringup
-Description: Description of pmb2_bringup
-Version: 3.0.20
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 

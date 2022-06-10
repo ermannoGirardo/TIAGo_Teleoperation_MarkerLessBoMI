@@ -1,4 +1,0 @@
-[ 11%] [32m[1mLinking CXX shared library /home/ermanno/tiago_public_ws/devel/.private/controller_manager_tests/lib/libcontroller_manager_tests.so[0m
-[ 77%] Built target controller_manager_tests
-[ 88%] [32m[1mLinking CXX executable /home/ermanno/tiago_public_ws/devel/.private/controller_manager_tests/lib/controller_manager_tests/dummy_app[0m
-[100%] Built target dummy_app

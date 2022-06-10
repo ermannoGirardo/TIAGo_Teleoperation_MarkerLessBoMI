@@ -1,8 +1,0 @@
-prefix=/home/ermanno/tiago_public_ws/install
-
-Name: combined_robot_hw
-Description: Description of combined_robot_hw
-Version: 0.5.0
-Cflags: -I${prefix}/include
-Libs: -L${prefix}/lib -lcombined_robot_hw
-Requires: hardware_interface pluginlib roscpp

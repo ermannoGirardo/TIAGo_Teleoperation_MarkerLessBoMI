@@ -1,8 +1,0 @@
-prefix=/home/ermanno/tiago_public_ws/devel/.private/tiago_moveit_config
-
-Name: tiago_moveit_config
-Description: Description of tiago_moveit_config
-Version: 1.1.3
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 

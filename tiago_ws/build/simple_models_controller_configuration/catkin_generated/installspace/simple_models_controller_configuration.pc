@@ -1,8 +1,0 @@
-prefix=/home/ermanno/tiago_public_ws/install
-
-Name: simple_models_controller_configuration
-Description: Description of simple_models_controller_configuration
-Version: 0.0.33
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 

@@ -1,1 +1,0 @@
-/home/ermanno/tiago_public_ws/devel/.private/gazebo_msgs/share/roseus/ros/gazebo_msgs/msg/ModelState.l

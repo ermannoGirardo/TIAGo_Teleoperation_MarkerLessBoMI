@@ -1,1 +1,0 @@
-/home/ermanno/tiago_public_ws/devel/.private/pal_statistics_msgs/share/roseus/ros/pal_statistics_msgs/msg/Statistics.l

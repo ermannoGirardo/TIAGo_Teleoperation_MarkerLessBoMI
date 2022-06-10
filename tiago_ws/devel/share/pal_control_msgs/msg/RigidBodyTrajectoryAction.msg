@@ -1,1 +1,0 @@
-/home/ermanno/tiago_public_ws/devel/.private/pal_control_msgs/share/pal_control_msgs/msg/RigidBodyTrajectoryAction.msg

@@ -1,8 +1,0 @@
-prefix=/home/ermanno/tiago_public_ws/install
-
-Name: pal_navigation_sm
-Description: Description of pal_navigation_sm
-Version: 0.1.7
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 

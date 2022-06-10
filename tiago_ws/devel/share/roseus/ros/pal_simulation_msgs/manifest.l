@@ -1,1 +1,0 @@
-/home/ermanno/tiago_public_ws/devel/.private/pal_simulation_msgs/share/roseus/ros/pal_simulation_msgs/manifest.l
