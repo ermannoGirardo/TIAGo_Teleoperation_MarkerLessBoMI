@@ -523,7 +523,7 @@ def filt(N, fc, fs, btype, signal):
 
 
 
-def compute_odom_pos(r):
+def compute_odom_pos(x,y):
     """
     This function, once the cursor position is acquired, it computes the position (x and y) to be 
     added at the actual position of the robot in order to be send to ROS to assign a target to be reached by TIAGo.
@@ -531,16 +531,18 @@ def compute_odom_pos(r):
     :return odom_x odom_y are the two coordinates to be added to the actual TIAGo position
     """
     point_on_x_axis = np.linspace(0,1800,21)
+    x_point_len = len(point_on_x_axis)
     delta_x = point_on_x_axis[1] - point_on_x_axis[0]
     point_on_y_axis = np.linspace(0,900,15)
+    y_point_len = len(point_on_y_axis)
     delta_y = point_on_y_axis[1] - point_on_x_axis[0]  
 
     #select the area where the cursor is
     #first scan the x-axis
-    for index in len(point_on_x_axis):
-        if (r.crs_x >= point_on_x_axis[index]) and (r.crs_x <= point_on_x_axis[index + 1]):
+    for index in range (x_point_len-1):
+        if (x >= point_on_x_axis[index]) and (x <= point_on_x_axis[index + 1]):
             #Compute if it is nearest at index or index + 1
-            if (r.crs_x > point_on_x_axis[index] + delta_x/2):
+            if (x > point_on_x_axis[index] + delta_x/2):
                 true_index_x = index + 1
                 odom_x = true_index_x - 10
             else:
@@ -549,15 +551,17 @@ def compute_odom_pos(r):
 
     
     #then scan the y-axis
-    for index in len(point_on_y_axis):
-        if (r.crs_y >= point_on_y_axis[index]) and (r.crs_y <= point_on_y_axis[index + 1]):
+    for index in range (y_point_len-1):
+        if (y >= point_on_y_axis[index]) and (y <= point_on_y_axis[index + 1]):
             #Compute if it is nearest at index or index + 1
-            if (r.crs_y > point_on_y_axis[index] + delta_y/2):
+            if (y > point_on_y_axis[index] + delta_y/2):
                 true_index_y = index + 1
                 odom_y = true_index_y - 7
+                break
             else:
                 true_index_y = index
-                odom_y = true_index_x - 7
+                odom_y = true_index_y - 7
+                break
 
     return odom_x,odom_y
 

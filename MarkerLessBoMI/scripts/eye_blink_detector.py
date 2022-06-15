@@ -12,7 +12,9 @@ import time , math,os,threading
 from scripts import utils 
 import numpy as np
 from scripts.stopwatch import StopWatch
-from main_reaching import manage_fsm_state
+from scripts.reaching_functions import compute_odom_pos
+# from main_reaching import manage_fsm_state
+import queue
 
 #open eyes_cls_calib
 path = os.path.dirname(os.path.abspath(__file__)) + "\\..\\calib\\eyes_cls_calib.txt"
@@ -30,6 +32,13 @@ rv_eye = []
 lv_eye = []
 lx_eye_threshold = None
 rx_eye_threshold = None
+base_state = queue.Queue()
+base_var = True
+base_state.put(base_var)
+
+#mouse coordinates
+x_coordinate = None
+y_coordinate = None
 
 # constants
 CLOSED_EYES_FRAME =3
@@ -58,18 +67,6 @@ map_face_mesh = mp.solutions.face_mesh
 # camera object 
 camera = cv.VideoCapture(0)
 
-class Eye_Detector():
-    """
-    Class that group all the functionalities for eye blinkink detector for manage the FSM
-    """
-    def __init__(self):
-        self.cls_eyes = False
-        self.three_times_cls = False
-        self.wink = False
-
-
-#Eye Detector Obj
-eye_detector_fsm = Eye_Detector()
 
 # landmark detection function 
 def landmarksDetection(img, results, draw=False):
@@ -137,9 +134,7 @@ def blinking_detection(start,cap):
 
     global frame_counter, lx_eye_threshold, rx_eye_threshold, map_face_mesh
     global CEF_COUNTER, CEF_WINK_COUNTER, TOTAL_BLINKS, TOTAL_EYES_CLS, TOTAL_WINK, cls_eyes_flag, CLOSED_EYES_FRAME, FONTS,CLS_RATIO_THRESHOLD, LEFT_EYE, RIGHT_EYE
-    global eye_detector_fsm
-   
-
+    global eye_detector_fsm, base_var,base_state, x_coordinate,y_coordinate
     # camera object 
     # camera = cv.VideoCapture(0)
 
@@ -191,7 +186,7 @@ def blinking_detection(start,cap):
                         if first_time_flag:
                             timer_cls_three_times.start()
                             first_time_flag = False
-                    if (timer_cls_three_times.elapsed_time > 1000):
+                    if (timer_cls_three_times.elapsed_time > 1500):
                         timer_cls_three_times.start()
                         eye_cls_counter = 0
                         first_time_flag = True
@@ -217,6 +212,7 @@ def blinking_detection(start,cap):
                     
                     CEF_WINK_COUNTER +=1
                     utils.colorBackgroundText(frame,  f'Wink', FONTS, 1.7, (int(frame_height/2), 100), 2, utils.YELLOW, pad_x=6, pad_y=6, )
+
                 else:
                     timer_wink.start()
                     winking_flag = False
@@ -225,33 +221,28 @@ def blinking_detection(start,cap):
                         CEF_WINK_COUNTER = 0
 
                 
-                # if statement to detect three closure in 1 seconds
+                # if statement to detect three closure in 1.5 seconds
                 if eye_cls_counter >= EYE_CLS_THRESHOLD:
                     timer_cls_three_times.start()
                     three_time_counter += 1 
                     first_time_flag = True
                     eye_cls_counter = 0
-                    eye_detector_fsm.three_times_cls = True
-                    manage_fsm_state(eye_detector_fsm)
-                    eye_detector_fsm.three_times_cls = False
-
-                # if statement to detect eyes closure for 1 second
-                if (timer_cls_eyes.elapsed_time >= CLS_TIME_THRESHOLD) and (not already_closed):
+                    base_var = not base_var
+                    base_state.put(base_var)
+                
+                # if statement to detect eyes closure for 1.5 second
+                elif (timer_cls_eyes.elapsed_time >= CLS_TIME_THRESHOLD) and (not already_closed):
                     TOTAL_EYES_CLS +=1
                     timer_cls_eyes.start()
                     already_closed = True
-                    eye_detector_fsm.cls_eyes = True
-                    manage_fsm_state(eye_detector_fsm)
-                    eye_detector_fsm.cls_eyes = False
+                    target_pos_x, target_pos_y = compute_odom_pos(x_coordinate,y_coordinate)
+                    print("Hai selezionato:" + target_pos_x + target_pos_y)
 
                 # if statement to detect eye wink
-                if (timer_wink.elapsed_time >=  WINK_TIME_THRESHOLD) and (not already_wink):
+                elif (timer_wink.elapsed_time >=  WINK_TIME_THRESHOLD) and (not already_wink):
                     TOTAL_WINK +=1
                     timer_wink.start()
                     already_wink = True
-                    eye_detector_fsm.wink = True
-                    manage_fsm_state(eye_detector_fsm)
-                    eye_detector_fsm.wink = False
 
                 # cv.putText(frame, f'Total Blinks: {TOTAL_BLINKS}', (100, 150), FONTS, 0.6, utils.GREEN, 2)
                 utils.colorBackgroundText(frame,  f'Total Blinks: {TOTAL_BLINKS}', FONTS, 0.7, (30,150),2)
@@ -367,3 +358,8 @@ def eyes_calib():
         return lx_eye_threshold, rx_eye_threshold
 
         
+
+def update_mouse_coordinates(r):
+    global x_coordinate, y_coordinate
+    x_coordinate = r.crs_x
+    y_coordinate = r.crs_y
