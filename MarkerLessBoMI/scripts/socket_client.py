@@ -43,6 +43,17 @@ def parse_data(r):
     return bytes_data
 
 
+def parse_target_pos(x,y):
+    """
+    Simply function that parse a byte with the coordinates of the target position
+    :param x: x coordinate of the target y: y coordinate of the target
+    :return bytes_data: the bytes to send to the server
+    """
+    global bytes_to_send
+    string_data = "x:" + str(x) + " y:" + str(y)
+    bytes_to_send = bytes(string_data,'UTF-8')
+    return bytes_to_send
+
 def send_data(bytes_data):
     """
     Function to send the bytes data in the socket communication
@@ -50,8 +61,8 @@ def send_data(bytes_data):
     #HOST = "192.168.56.1"  # The server's hostname or IP address
     #PORT = 5050  # The port used by the server
 
-    #with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-     #   s.sendall(bytes_data)
+    # with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    #    s.sendall(bytes_data)
     global send
     send = True
     
@@ -72,11 +83,9 @@ def manage_connection_server(connection):
          
 
 def client_connected(connection):
-    """
-    Function to wait time_ms
-    """
     global send,bytes_to_send,close_connection
-    HOST = "192.168.1.22"  # The server's hostname or IP address
+    #HOST = "192.168.1.22"  # The server's hostname or IP address
+    HOST = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
     PORT = 5050  # The port used by the server
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((HOST, PORT))

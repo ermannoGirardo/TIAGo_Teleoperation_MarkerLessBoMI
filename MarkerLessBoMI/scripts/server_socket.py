@@ -2,15 +2,22 @@ import socket
 import threading
 import numpy as np
 
+
+#GLOBAL VARIABLES
 HEADER = 64
 PORT = 5050
-SERVER = "192.168.1.22"
+SERVER = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
 ADDR = (SERVER, PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(ADDR)
+
+#FOR THE TARGET POSITION
+x_coordinate = None
+y_coordinate = None
+
 
 def handle_client(conn, addr):
     print(f"[NEW CONNECTION] {addr} connected.")
@@ -28,6 +35,7 @@ def handle_client(conn, addr):
         
 
 def decode_msg(msg):
+    global x_coordinate,y_coordinate
     joints = np.zeros(8)
     #check for lin_vel
     if 'lin_vel:' in msg:
@@ -94,7 +102,26 @@ def decode_msg(msg):
         float_value = msg[float_pos: float_pos + 3]
         joints[7] = float_value
 
-    print('Joints values is:' + str(joints))
+    #check for target position
+    if 'x:' in msg:
+        position = msg.find('x:')
+        int_pos = position + len('x:')
+        if msg[int_pos] == '-':
+            x_coordinate = msg[int_pos:int_pos + 1]
+        else:
+            x_coordinate = msg[int_pos]
+
+    if 'y:' in msg:
+        position = msg.find('y:')
+        int_pos = position + len('y:')
+        if msg[int_pos] == '-':
+            y_coordinate = msg[int_pos:int_pos + 1]
+        else:
+            y_coordinate = msg[int_pos]
+    
+    print('Ho decodificato e salvato' + str(x_coordinate) + '   ' + str(y_coordinate)) 
+
+    # print('Joints values is:' + str(joints))
 
 
 def start():

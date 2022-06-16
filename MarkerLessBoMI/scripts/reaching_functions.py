@@ -545,9 +545,13 @@ def compute_odom_pos(x,y):
             if (x > point_on_x_axis[index] + delta_x/2):
                 true_index_x = index + 1
                 odom_x = true_index_x - 10
+                break
             else:
                 true_index_x = index
                 odom_x = true_index_x - 10
+                break
+    if (x>1800):
+        odom_x = 10
 
     
     #then scan the y-axis
@@ -557,12 +561,16 @@ def compute_odom_pos(x,y):
             if (y > point_on_y_axis[index] + delta_y/2):
                 true_index_y = index + 1
                 odom_y = true_index_y - 7
+                odom_y = - odom_y
                 break
             else:
                 true_index_y = index
                 odom_y = true_index_y - 7
+                odom_y = - odom_y
                 break
-
+    
+    if (y>900):
+        odom_y = -7
     return odom_x,odom_y
 
 
