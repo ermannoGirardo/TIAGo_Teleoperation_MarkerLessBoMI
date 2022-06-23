@@ -33,38 +33,26 @@ class send_image_socket():
             self.data_img = json.load(open(path))
         except:
             print("I am not able to open JSON file")
-        #self.img_sub = rospy.Subscriber("processed_image/republish",CompressedImage, self.send_img_processed, queue_size=1)
-        self.img_sub = rospy.Subscriber("/xtion/rgb/image_raw",Image, self.send_img_processed, queue_size=1)
-
+        self.img_sub = rospy.Subscriber("processed_image/republish",CompressedImage, self.send_img_processed, queue_size=1)
         self.FORMAT = "utf-8"
 
 
     def send_img_processed(self,msg):
-        #print(msg)
         cv_br = CvBridge()
-        cv2_img = cv_br.imgmsg_to_cv2(msg,"bgr8")
-        cv2.imshow("TIAGo Head",cv2_img)
-        cv2.waitKey(15)
-        #self.data_img["data"] = msg.data
-        # self.data_img["format"] = "jpg"
-        #msg = json.dumps(self.data_img)
-        #print("DAto:" + str(msg))
-        #image_file.write(str(msg))
-        #msg_bytes = bytes(msg.data)
-        #client = socket.socket(
-        #socket.AF_INET, socket.SOCK_STREAM) 
-        #client.connect(self.ADDR)
-        # img_msg  = msg.data
-        #message = msg.encode(self.FORMAT)
-        # try:
-        #     client.send(msg)
-        #     print("Message correctly send")
-        # except:
-        #     print("Impossible to send image message")
-        # client.close()
+        cv2_img = cv_br.compressed_imgmsg_to_cv2(msg,"bgr8")
+        client = socket.socket(
+        socket.AF_INET, socket.SOCK_STREAM) 
+        client.connect(self.ADDR)
+        try:
+            client.send(cv2_img)
+            print("Message correctly send")
+        except:
+            print("Impossible to send image message")
+        client.close()
 
 if __name__ == "__main__":
-    ip_add = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
+    #ip_add = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
+    ip_add = "192.168.1.14"
     print("Client IP:" + str(ip_add))
     port = 8085
     client = send_image_socket(ip_add,port)
