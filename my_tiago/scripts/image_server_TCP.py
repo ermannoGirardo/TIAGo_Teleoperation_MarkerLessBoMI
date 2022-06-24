@@ -1,14 +1,26 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import socket
 import cv2
 from cv_bridge import CvBridge
 import os
+import numpy as np
 
 FORMAT = "utf-8"
 path = os.path.dirname(os.path.abspath(__file__)) + "\\..\\TestFile.txt"
 image_file = open(path,"w+")
-WINDOW_NAME = "TIAGo Head Camera"
+#WINDOW_NAME = "TIAGo Head Camera"
+
+
+def recvall(sock,count):
+    buf = b''
+    while count:
+        newbuf = sock.recv(count)
+        if not newbuf:
+            return None
+        buf += newbuf
+        count -= len(newbuf)
+    return buf
 
 def server_sub(addr,backlog=1):
     global WINDOW_NAME
@@ -25,18 +37,15 @@ def server_sub(addr,backlog=1):
 
     while True:
         conn,client_addr = s.accept()
-        data = conn.recv(32768)
-        cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)        # Create window with freedom of dimensions
-        cv2.resizeWindow(WINDOW_NAME, 1800, 900)
-        cv2.imshow(WINDOW_NAME,data)
+        length = recvall(conn,16)
+        stringData = recvall(conn,int(length))
+        data = np.fromstring(stringData,dtype='uint8')
 
+        decimg = cv2.imdecode(data,1)
+        #cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)        # Create window with freedom of dimensions
+        # cv2.resizeWindow(WINDOW_NAME, 1800, 900)
+        cv2.imshow("TIAGo Head Camera",decimg)
         cv2.waitKey(15)
-        # try: 
-        #     cv2.imshow("TIAGo Head", image)
-        # except:
-        #     print("Display Non riuscito")
-        if not data:
-            conn.close()
 
 
 if __name__ == "__main__":
