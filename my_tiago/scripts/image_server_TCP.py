@@ -39,7 +39,7 @@ def server_sub(addr,backlog=1):
         conn,client_addr = s.accept()
         length = recvall(conn,16)
         stringData = recvall(conn,int(length))
-        data = np.fromstring(stringData,dtype='uint8')
+        data = np.frombuffer(stringData,dtype='uint8')
 
         decimg = cv2.imdecode(data,1)
         #cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)        # Create window with freedom of dimensions
@@ -53,6 +53,7 @@ if __name__ == "__main__":
     Initialize the node
     '''
     ip_add = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
+    #ip_add = "" #Uncomment if used with another machine and insert its ip address
     print("[SERVER] Initialize the server on:"+ip_add)
     server_sub((ip_add,8085))
      
