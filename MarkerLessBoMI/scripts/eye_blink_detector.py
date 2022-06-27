@@ -236,7 +236,7 @@ def blinking_detection(start,cap):
                     timer_cls_eyes.start()
                     already_closed = True
                     target_pos_x, target_pos_y = compute_odom_pos(x_coordinate,y_coordinate)
-                    print("Hai selezionato:" + target_pos_x + target_pos_y)
+                    print("Hai selezionato:" + "x: " + str(target_pos_x) + " y: " + str(target_pos_y))
 
                 # if statement to detect eye wink
                 elif (timer_wink.elapsed_time >=  WINK_TIME_THRESHOLD) and (not already_wink):
