@@ -45,8 +45,6 @@ from scripts.socket_client import parse_data, send_data, manage_connection_serve
 from  scripts.eye_blink_detector import *
 
 
-
-
 pyautogui.PAUSE = 0.01  # set fps of cursor to 100Hz ish when mouse_enabled is True
 
 #GLOBAL VARIABLES
