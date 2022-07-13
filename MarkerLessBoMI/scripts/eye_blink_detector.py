@@ -13,6 +13,7 @@ from scripts import utils
 import numpy as np
 from scripts.stopwatch import StopWatch
 from scripts.reaching_functions import compute_odom_pos
+from scripts.socket_client import parse_target_pos,send_data
 # from main_reaching import manage_fsm_state
 import queue
 
@@ -33,7 +34,7 @@ lv_eye = []
 lx_eye_threshold = None
 rx_eye_threshold = None
 base_state = queue.Queue()
-base_var = True
+base_var = False
 base_state.put(base_var)
 
 #mouse coordinates
@@ -236,7 +237,12 @@ def blinking_detection(start,cap):
                     timer_cls_eyes.start()
                     already_closed = True
                     target_pos_x, target_pos_y = compute_odom_pos(x_coordinate,y_coordinate)
-                    print("Hai selezionato:" + "x: " + str(target_pos_x) + " y: " + str(target_pos_y))
+                    #print("Hai selezionato:" + "x: " + str(target_pos_x) + " y: " + str(target_pos_y))
+                    
+                    #Send now the two coordinates to the server
+                    bytes_to_send = parse_target_pos(target_pos_x,target_pos_y)
+                    send_data(bytes_to_send)
+
 
                 # if statement to detect eye wink
                 elif (timer_wink.elapsed_time >=  WINK_TIME_THRESHOLD) and (not already_wink):
