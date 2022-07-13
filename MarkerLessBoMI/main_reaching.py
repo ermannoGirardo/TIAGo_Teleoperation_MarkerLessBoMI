@@ -22,6 +22,7 @@ from PIL import ImageTk, Image
 
 # For pygame
 import pygame
+from sklearn.metrics import RocCurveDisplay
 # For reaching task
 from scripts.reaching import Reaching
 from scripts.stopwatch import StopWatch
@@ -39,7 +40,7 @@ from scripts.compute_bomi_map import Autoencoder, PrincipalComponentAnalysis, co
 from scripts.display_webcam import show_webcam
 
 #For socket communication
-from scripts.socket_client import parse_data, send_data, manage_connection_server
+from scripts.socket_client import *
 
 #For eye blinkin detection
 from  scripts.eye_blink_detector import *
@@ -65,7 +66,14 @@ holistic = None
 cap = None
 
 
+#Take into account the state of the base teleoperation
+#base_state_teleop == True --> 'nine region GUI'
+#base_state_teleop == False --> 'odom GUI'
+base_state_teleop = None
 
+
+# --- MACROS FOR EXEC BASH FILE ---#
+SIMPLE_OFFICE_WITH_PEOPLE = "simple_office_with_people"
 
 class MainApplication(tk.Frame):
     """
@@ -117,7 +125,7 @@ class MainApplication(tk.Frame):
         self.btn_calib["state"] = "disabled"
         self.btn_calib.config(font=("Arial", self.font_size))
         self.btn_calib.grid(row=1, column=0, columnspan=2, padx=20, pady=(20, 30), sticky='nesw')
-        self.calib_duration = 3000
+        self.calib_duration = 60000
 
         #Eyes Calibration Button
         self.btn_eyes_calib = Button(parent, text="Eyes Calibration", command=self.eyes_calibration)
@@ -455,7 +463,7 @@ class TIAGoPracticeApplication(tk.Frame):
         #/////////////CONNECT WITH SERVER/////////////////////////////#
         #If parameter = True ---> start the connection
         #if parameter = False --> close connection
-        # manage_connection_server(True)
+        manage_connection_server(True)
 
         #////////////////BUTTONS FUNCTION CALLBACK////////////////////////#
 
@@ -909,7 +917,16 @@ def initialize_base_practice(self, dr_mode, drPath, num_joints, joints):
     :param drPath: path to load the BoMI forward map
     :return:
     """
-    global holistic,cap
+    global holistic,cap, base_state_teleop
+
+    # --- SEND TO THE SERVER THE COMMAND TO EXECUTE THE CORRECT BASH FILE ---#
+    bytes_to_send=parse_bash_file(SIMPLE_OFFICE_WITH_PEOPLE)
+    send_data(bytes_to_send)
+    #Sleep 20 seconds in order to give time to Ubuntu to run all topics
+    time.sleep(20)
+
+
+
     # Create object of openCV, Reaching class and filter_butter3
     cap = cv2.VideoCapture(0)
     r = Reaching()
@@ -983,9 +1000,12 @@ def initialize_base_practice(self, dr_mode, drPath, num_joints, joints):
     size = (r.base_width, r.base_height)
     screen = pygame.display.set_mode(size)
 
-    # -------- Main Program Loop -----------
+    # -------- Main Program Loop Nine Regions GUI-----------
     while not r.is_terminated:
         if base_state.get() == False:
+            base_state_teleop = True
+            bytes_to_send=set_base_teleop_state(base_state_teleop)
+            send_data(bytes_to_send)
             while base_state.empty():
                 # --- Main event loop
                 for event in pygame.event.get():  # User did something
@@ -1097,10 +1117,12 @@ def initialize_base_practice(self, dr_mode, drPath, num_joints, joints):
                     # --- Limit to 50 frames per second
                     clock.tick(50)
 
-        # Cartesian Axes 'odom' GUI
         else: 
+            base_state_teleop = False
+            bytes_to_send=set_base_teleop_state(base_state_teleop)
+            send_data(bytes_to_send)
             while base_state.empty():
-                # --- Main event loop
+                # --- Main event loop Odom GUI ---#
                 for event in pygame.event.get():  # User did something
                     if event.type == pygame.QUIT:  # If user clicked close
                         r.is_terminated = True  # Flag that we are done so we exit this loop
@@ -1225,10 +1247,6 @@ def initialize_base_practice(self, dr_mode, drPath, num_joints, joints):
             
                     for y_coordinate in point_on_y_axis:
                         pygame.draw.rect(screen,BLACK,pygame.Rect(893,y_coordinate,20,5))
-
-                    #parse the string to be send
-                    bytes_string = parse_data(r)
-                    send_data(bytes_string)
 
                     # --- update the screen with what we've drawn.
                     pygame.display.flip()
