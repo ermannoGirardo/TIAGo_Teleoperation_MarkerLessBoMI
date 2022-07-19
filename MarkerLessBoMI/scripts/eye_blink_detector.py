@@ -6,6 +6,7 @@ In order to understand if the eyes is closed, the ratio between these two lines 
 If this ratio is grater than CLS_RATIO_TRESHOLD constant, the eyes are considered closed.
 """
 
+from tkinter.messagebox import NO
 import cv2 as cv
 import mediapipe as mp
 import time , math,os,threading
@@ -67,6 +68,9 @@ RIGHT_EYEBROW=[ 70, 63, 105, 66, 107, 55, 65, 52, 53, 46 ]
 map_face_mesh = mp.solutions.face_mesh
 # camera object 
 camera = cv.VideoCapture(0)
+
+#Simulation
+map_name = None
 
 
 # landmark detection function 
@@ -135,7 +139,7 @@ def blinking_detection(start,cap):
 
     global frame_counter, lx_eye_threshold, rx_eye_threshold, map_face_mesh
     global CEF_COUNTER, CEF_WINK_COUNTER, TOTAL_BLINKS, TOTAL_EYES_CLS, TOTAL_WINK, cls_eyes_flag, CLOSED_EYES_FRAME, FONTS,CLS_RATIO_THRESHOLD, LEFT_EYE, RIGHT_EYE
-    global eye_detector_fsm, base_var,base_state, x_coordinate,y_coordinate
+    global eye_detector_fsm, base_var,base_state, x_coordinate,y_coordinate, map_name
     # camera object 
     # camera = cv.VideoCapture(0)
 
@@ -232,13 +236,27 @@ def blinking_detection(start,cap):
                     base_state.put(base_var)
                 
                 # if statement to detect eyes closure for 1.5 second
-                elif (timer_cls_eyes.elapsed_time >= CLS_TIME_THRESHOLD) and (not already_closed):
+                elif (timer_cls_eyes.elapsed_time >= CLS_TIME_THRESHOLD) and (not already_closed) and (base_var == True):
                     TOTAL_EYES_CLS +=1
                     timer_cls_eyes.start()
                     already_closed = True
                     target_pos_x, target_pos_y = compute_odom_pos(x_coordinate,y_coordinate)
                     #print("Hai selezionato:" + "x: " + str(target_pos_x) + " y: " + str(target_pos_y))
                     
+                    #Customize Data to the running simulation
+                    #In order to center the cartesian Axes on the map
+                    if map_name == 'Simple Office':
+                        target_pos_y = target_pos_y * (-1.)
+                        temporary_var = target_pos_y
+                        target_pos_y = target_pos_x
+                        target_pos_x = temporary_var
+
+                    elif map_name == "Simple Office With People":
+                        target_pos_y = target_pos_y * (-1.)
+                        temporary_var = target_pos_y
+                        target_pos_y = target_pos_x
+                        target_pos_x = temporary_var
+
                     #Send now the two coordinates to the server
                     bytes_to_send = parse_target_pos(target_pos_x,target_pos_y)
                     send_data(bytes_to_send)
@@ -280,7 +298,13 @@ def blinking_detection(start,cap):
 
 
 
-
+def update_map_name(str_map_name):
+    """
+    Simple function that updates the current simulation of the map
+       
+    """
+    global map_name
+    map_name = str_map_name
 
 
 def eyes_calib():

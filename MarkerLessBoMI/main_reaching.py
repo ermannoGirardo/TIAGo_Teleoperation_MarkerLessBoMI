@@ -73,6 +73,7 @@ base_state_teleop = None
 
 
 # --- MACROS FOR EXEC BASH FILE ---#
+SIMPLE_OFFICE = "simple_office"
 SIMPLE_OFFICE_WITH_PEOPLE = "simple_office_with_people"
 
 class MainApplication(tk.Frame):
@@ -422,6 +423,7 @@ class TIAGoPracticeApplication(tk.Frame):
         self.joints = joints
         self.dr_mode = dr_mode
         self.font_size = 18
+        self.selected_map = None
 
         #////////////////////TKINTER GUI///////////////////////////# 
 
@@ -441,18 +443,33 @@ class TIAGoPracticeApplication(tk.Frame):
         self.btn_base_tiago.config(font=("Arial", self.font_size))
         self.btn_base_tiago.grid(column=2, row=11, sticky='nesw', padx=(80, 0), pady=(40, 20))
         
-        self.help_base = Label(parent,text='Move the cursor trough the nine areas to select the wanted velocity')
-        self.help_base.config(font=("Arial", 12))
-        self.help_base.grid(column=0, row=11, padx=(300, 0), pady=(40, 20), sticky='w')
+        # self.help_base = Label(parent,text='Move the cursor trough the nine areas to select the wanted velocity')
+        # self.help_base.config(font=("Arial", 12))
+        # self.help_base.grid(column=0, row=11, padx=(300, 0), pady=(40, 20), sticky='w')
+
+        self.simple_office = BooleanVar()
+        self.chose_map1 = Checkbutton(parent, text="Simple Office", variable=self.simple_office)
+        self.chose_map1.config(font=("Arial", self.font_size))
+        self.chose_map1.grid(row=11, column=0, pady=(20, 30), sticky='w')
+
+        self.simple_office_with_people = BooleanVar()
+        self.chose_map2 = Checkbutton(parent, text="Simple Office With People", variable=self.simple_office_with_people)
+        self.chose_map2.config(font=("Arial", self.font_size))
+        self.chose_map2.grid(row=12, column=0, pady=(20, 30), sticky='w')
+
+        self.btn_choose_map = Button(parent, text="Choose Map", command=self.choose_map)
+        self.btn_choose_map["state"] = "normal"
+        self.btn_choose_map.config(font=("Arial", self.font_size))
+        self.btn_choose_map.grid(column=0, row=20, sticky='nesw', padx= 20, pady=(20, 30))
 
         self.btn_arm_tiago = Button(parent, text="Manipulator GUI", command=self.arm_practice)
         self.btn_arm_tiago["state"] = "normal"
         self.btn_arm_tiago.config(font=("Arial", self.font_size))
         self.btn_arm_tiago.grid(column=2, row=12, sticky='nesw', padx=(80, 0), pady=(40, 20))
 
-        self.help_arm = Label(parent,text='Move the cursor to select the joint and use arrows to select its value')
-        self.help_arm.config(font=("Arial", 12))
-        self.help_arm.grid(column=0, row=12, padx=(300, 0), pady=(40, 20), sticky='w')
+        # self.help_arm = Label(parent,text='Move the cursor to select the joint and use arrows to select its value')
+        # self.help_arm.config(font=("Arial", 12))
+        # self.help_arm.grid(column=0, row=12, padx=(300, 0), pady=(40, 20), sticky='w')
 
         self.btn_close = Button(parent, text="Close", command=parent.destroy, bg='red')
         self.btn_close.config(font=("Arial", self.font_size))
@@ -466,6 +483,14 @@ class TIAGoPracticeApplication(tk.Frame):
         manage_connection_server(True)
 
         #////////////////BUTTONS FUNCTION CALLBACK////////////////////////#
+
+
+    def choose_map(self):
+        if self.simple_office.get():
+            self.selected_map = "Simple Office"
+        elif self.simple_office_with_people.get():
+            self.selected_map = "Simple Office With People"
+        print("Map Selected")
 
     def arm_practice(self):
         self.w = popupWindow(self.master, "You can now start practicing manipulation")
@@ -920,13 +945,21 @@ def initialize_base_practice(self, dr_mode, drPath, num_joints, joints):
     global holistic,cap, base_state_teleop
 
     # --- SEND TO THE SERVER THE COMMAND TO EXECUTE THE CORRECT BASH FILE ---#
-    bytes_to_send=parse_bash_file(SIMPLE_OFFICE_WITH_PEOPLE)
-    send_data(bytes_to_send)
+    if self.selected_map == 'Simple Office':
+        bytes_to_send=parse_bash_file(SIMPLE_OFFICE)
+        send_data(bytes_to_send)
+        #update the map name into eye_blink_detector script
+        update_map_name(self.selected_map)
+
+    elif self.selected_map == "Simple Office With People":
+        bytes_to_send=parse_bash_file(SIMPLE_OFFICE_WITH_PEOPLE)
+        send_data(bytes_to_send)
+        #update the map name into eye_blink_detector script
+        update_map_name(self.selected_map)
+
     #Sleep 20 seconds in order to give time to Ubuntu to run all topics
-    time.sleep(20)
-
-
-
+    time.sleep(12)
+    
     # Create object of openCV, Reaching class and filter_butter3
     cap = cv2.VideoCapture(0)
     r = Reaching()
@@ -1253,10 +1286,6 @@ def initialize_base_practice(self, dr_mode, drPath, num_joints, joints):
 
                     # --- Limit to 50 frames per second
                     clock.tick(50)
-
-
-
-
 
 
     # Once we have exited the main program loop, stop the game engine and release the capture
