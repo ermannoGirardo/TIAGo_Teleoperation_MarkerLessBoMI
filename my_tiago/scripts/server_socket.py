@@ -1,21 +1,22 @@
-from lib2to3.pytree import Base
-from pickle import TRUE
-from re import X
-import socket 
+#!/usr/bin/env python3
+
+import socket
 import threading
+from xmlrpc.client import Server
 import numpy as np
 import os
 # import settings
 from queue import Queue
-
-
+import subprocess
+import time
 
 # ROS
 import rospy
 from geometry_msgs.msg import *
 from std_msgs.msg import *
 from nav_msgs.msg import *
-from my_tiago.msg import server_velocities
+
+#from my_tiago.msg import Velocities
 
 #GLOBAL VARIABLES
 HEADER = 64
@@ -25,44 +26,39 @@ ADDR = (SERVER, PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
 
-base_teleop_state = None
-list_of_lines = None
-matrix_file = None
 
+class ServerData:
+    """
+    This class is used to share variables between functions
+    """
+    def __init__(self):
 
-#FOR MANAGE THE FILE
+        ##TELEOPERATION BASE ############
+        #Variables
+        self.linear_vel = None
+        self.angular_vel = None
+        self.x_coordinate  = None
+        self.y_coordinate = None
+        self.base_state = None
+        self.base_state_pub = None
+        self.send_coordinates = False
+        self.map_name = None
+        #self.vel_publisher = None
+        #self.coor_publisher = None
+        #ROS Publisher
+        self.linear_vel_pub = None
+        self.ang_vel_pub = None
+        self.x_coor_pub = None
+        self.y_coor_pub = None
+        self.map_name_pub = None
+        ###################################
 
-    #PUNTATORE TABELLA FLAG
-        # riga 1 --> seek(5,0)
-        # riga 2 --> seek(12,0)
-        # riga 3 --> seek(19,0)
-        # riga 4 --> seek(26,0)
-        # riga 5 --> seek(33,0)
+#Instanciate an object of the class
+server_data = ServerData()
 
-    #TABELLA POSIZIONI VALORI
-        #riga 1 --> seek(0,0)
-        #riga 2 --> seek(7,0)
-        #riga 3 --> seek(14,0)
-        #riga 4 --> seek(21,0)
-        #riga 5 --> seek(28,0)
-
-CONSTANT_RAW1 = "lin_vel"
-CONSTANT_RAW2 = "ang_vel"
-CONSTANT_RAW3 = "x_coor"
-CONSTANT_RAW4 = "y_coor"
-CONSTANT_RAW5 = "base_state"
-CONSTANT_RAW6 = "map_name"
-
-my_hash_table = [CONSTANT_RAW1,CONSTANT_RAW2,CONSTANT_RAW3,CONSTANT_RAW4,CONSTANT_RAW5,CONSTANT_RAW6]
-path = os.path.dirname(__file__) #<-- absolute dir the script is in
-rel_path = "../FILES/data.txt"
-abs_file_path = os.path.join(path, rel_path)
-
-
-my_settings_file = open(abs_file_path,"w+")
 
 ## FUNCTIONS
-    
+
 def handle_client(conn, addr):
     global linear_vel
     print(f"[NEW CONNECTION] {addr} connected.")
@@ -77,7 +73,7 @@ def handle_client(conn, addr):
         print(f"[{addr}] {msg}")
 
     conn.close()
-        
+
 
 
 
@@ -85,9 +81,10 @@ def decode_msg(msg):
     """
     Function used to decode the msg sent by the socket client
     :param
-        msg: string received by client 
+        msg: string received by client
     """
     global base_teleop_state,my_settings_file,list_of_lines,matrix_file
+    global server_data
 
     #check for lin_vel in msg
     if 'lin_vel:' in msg:
@@ -99,30 +96,22 @@ def decode_msg(msg):
         else:
             lin_vel = msg[float_pos: float_pos + 3]
             flag_negative = False
+        server_data.linear_vel = float(lin_vel)
 
-        #compose the data in order to be written in the file
-        if flag_negative==False:
-            modify_value("lin_vel", '+' + str(lin_vel), matrix_file,my_settings_file)
-        else:
-            modify_value("lin_vel",str(lin_vel), matrix_file,my_settings_file)
-
+    
     #check for ang_vel in msg
+
     if 'ang_vel:' in msg:
         position = msg.find('ang_vel:')
         float_pos = position + len("ang_vel:")
         if msg[float_pos] == '-':
             ang_vel = msg[float_pos:float_pos + 4]
-            flag_negative= True
         else:
             ang_vel = msg[float_pos: float_pos + 3]
-            flag_negative = False
 
-        #compose the data in order to be written in the file
-        if flag_negative==False:
-            modify_value("ang_vel", '+' + str(ang_vel), matrix_file,my_settings_file)
-        else:
-            modify_value("ang_vel",str(ang_vel), matrix_file,my_settings_file)
-        
+        server_data.angular_vel = float(ang_vel)
+
+    
 
     #check for target position for odom GUI
     if 'x:' in msg:
@@ -130,167 +119,113 @@ def decode_msg(msg):
         int_pos = position + len('x:')
         if msg[int_pos] == '-':
             x_coo = msg[int_pos:int_pos + 2]
-            flag_negative = True
         else:
             x_coo = msg[int_pos]
-            flag_negative = False
 
         #compose the data in order to be written in the file
         #in the following format
         #+/-x.x 0/1
 
-        if (flag_negative==False) and (x_coo != 9.9):
-            modify_value("x_coor", '+' + str(x_coo) + ".0", matrix_file,my_settings_file)
-        
-        elif (flag_negative==False) and (x_coo == 9.9):
-            modify_value("x_coor", '+' + str(x_coo), matrix_file,my_settings_file)
-        
-        #is negative
-        else:
-            modify_value("x_coor",str(x_coo) + ".0", matrix_file,my_settings_file)
+        server_data.x_coordinate = float(x_coo)
 
     if 'y:' in msg:
         position = msg.find('y:')
         int_pos = position + len('y:')
         if msg[int_pos] == '-':
             y_coo = msg[int_pos:int_pos + 2]
-            flag_negative = True
         else:
             y_coo = msg[int_pos]
-            flag_negative = False
 
-        #compose the data in order to be written in the file
-        if flag_negative==False:
-            modify_value("y_coor", '+' + str(y_coo) + ".0", matrix_file,my_settings_file)
-        else:
-            modify_value("y_coor",str(y_coo) + ".0", matrix_file,my_settings_file)
+        server_data.y_coordinate = float(y_coo)
+        server_data.send_coordinates = True
 
     #check for start simple office simulation
+
+    #LEGEND
+    #map_name = 1.0 simple_office
+    #map_name = 2.0 simple_office_with_people
 
     if 'simple_office' == msg:
         # ---EXECUTE THE CORRESPONDING BASH FILE ---#
         os.system('./simple_office.sh')
         print("[STARTING ...] Simple Office")
-        modify_value("map_name",'map1',matrix_file,my_settings_file)
+        server_data.map_name = 1.0
+        server_data.map_name_pub.publish(msg)
 
     elif 'simple_office_with_people' == msg:
         # ---EXECUTE THE CORRESPONDING BASH FILE ---#
         os.system('./simple_office_with_people.sh')
         print("[STARTING ...] Simple Office With People")
-        modify_value("map_name",'map2',matrix_file,my_settings_file)
-        
-
+        server_data.map_name = 2.0
+        server_data.map_name_pub.publish(msg)
 
 
     # ---CHECK AND UPDATE THE STATE OF THE BASE ---#
     # 'nine regions' --> +1.0
     # 'odom' --> +0.0
-    
+
     if "nine region" in msg:
         #write in the file the base state value
-        modify_value("base_state", '+1.0', matrix_file,my_settings_file)
+        server_data.base_state = 1.0
+        server_data.base_state_pub.publish(server_data.base_state)
+        server_data.map_name_pub.publish(server_data.map_name)
 
     if "odom" in msg:
         #write in the file the base state value
-        modify_value("base_state", '+0.0', matrix_file,my_settings_file)
+        server_data.base_state = 0.0
+        server_data.base_state_pub.publish(server_data.base_state)
+        server_data.map_name_pub.publish(server_data.map_name)
 
 
-def init_file():
-    """
-    Function used to initialize the file
-    In particular it writes on file the values for:
-        linear_val and its corresponding flag
-        angular_vel and its corresponding flag
-        x_coordinate and its corresponding flag
-        y_coordinate and its corresponding flag
-        base_state and its corresponding flag
-        the name of the map and its corresponding flag
-    """
-    global my_settings_file,list_of_lines,matrix_file
-    print("I am initializing the file:")
-    my_settings_file.write('+0.0' + " " + str(1) + "\n")
-    my_settings_file.write('+0.0' + " " + str(1) + "\n")
-    my_settings_file.write('None' + " " + str(1) +  "\n")
-    my_settings_file.write('None' + " " + str(1) + "\n")
-    my_settings_file.write('+0.0' + " " + str(1) + "\n")
-    my_settings_file.write('None' + " " + str(1) + '\n')
-    my_settings_file.flush()
-    my_settings_file.seek(0,0)
-    list_of_lines = my_settings_file.readlines()
-    matrix_file = scompose_raws_into_matrix(list_of_lines)
-    print("File initialized!")
+def init_publishers():
+    global server_data
+    roscore = subprocess.Popen('roscore')
+    time.sleep(1)
+    rospy.init_node("server_socket", anonymous=True)
+    print("Server Node STARTED")
+    server_data.linear_vel_pub = rospy.Publisher("server_socket/linear_vel",Float32,queue_size=10)
+    server_data.ang_vel_pub = rospy.Publisher("server_socket/angular_vel",Float32,queue_size=10)
+    #velocities_publisher = rospy.Publisher("server_socket/velocities",Velocities,queue_size=10)
+    server_data.x_coor_pub = rospy.Publisher("server_socket/x_coordinate",Float32,queue_size=10)
+    server_data.y_coor_pub = rospy.Publisher("server_socket/y_coordinate",Float32,queue_size=10)
+    server_data.map_name_pub = rospy.Publisher("server_socket/map_name",Float32,queue_size=10)
+    server_data.base_state_pub = rospy.Publisher("server_socket/base_state",Float32,queue_size=1)
 
+    rate = rospy.Rate(20)
+    server_data.linear_vel = 0.0
+    server_data.angular_vel = 0.0
 
-def modify_value(what, value,matrix,file):
-    """
-    Function used to modify the wanted value in the file
-    In particual it takes the wanted item, the value, the matrix of the file and the file
-    :param
-        what: see my_hash_table
-        value: the value to be written in the file
-        matrix: the matrix of lines written in the file and its value and flag
-        file: the name of the file
-    """
-    counter = 0
-    #You can see flag location in the table 
-    corresponding_location_flag = 5
-    corresponding_location_value = 0
-    for item in my_hash_table:
-        if what == item:
-            break
-        counter  = counter + 1
-        corresponding_location_flag = corresponding_location_flag + 7
-        corresponding_location_value = corresponding_location_value + 7
-    
-    # Modify the flag before write
-    matrix[counter][1] = '0'
+    rate = rospy.Rate(20)
+    while not rospy.is_shutdown():
+        #if glb_base_state == 1.0:  
+        if server_data.base_state == 1.0:
 
-    #move pointer to location of the corresponding flag
-    file.seek(corresponding_location_flag,0)
+            try:
+                # msg = Velocities()
+                # msg.linear_velocity = server_data.linear_vel
+                # msg.angular_velocity = server_data.angular_vel
+                # velocities_publisher.publish(msg)
+                server_data.linear_vel_pub.publish(server_data.linear_vel)
+                server_data.ang_vel_pub.publish(server_data.angular_vel)
+                server_data.base_state_pub.publish(server_data.base_state)
+                server_data.map_name_pub.publish(server_data.map_name)
 
-    #modify the flag on file
-    file.write('0')
-    file.flush()
-
-    # Modify value on matrix
-    matrix[counter][0] = value
-    
-    #Move pointer position to the value
-    file.seek(corresponding_location_value,0)
-    
-    #Write on file
-    file.write(value)
-    file.flush()
-
-    #restore flag
-    matrix[counter][1] = '1'
-
-    #move pointer to location of the corresponding flag
-    file.seek(corresponding_location_flag,0)
-
-    #modify the flag on file
-    file.write('1')
-    file.flush()
-
-def scompose_raws_into_matrix(list_of_lines):
-    """
-    Function used to compose the matrix from the list of lines
-    :param
-        list_of_lines: the array of the file's lines
-    :return 
-        matrix: the composed matrix
-    """
-    raw1 = list_of_lines[0].split()
-    raw2 = list_of_lines[1].split()
-    raw3 = list_of_lines[2].split()
-    raw4 = list_of_lines[3].split()
-    raw5 = list_of_lines[4].split()
-    raw6 = list_of_lines[5].split()
-    matrix =  [raw1,raw2,raw3,raw4,raw5,raw6]
-    return matrix
-   
- 
-
+                rate.sleep()
+                print("Velocità pubblicate")
+            except rospy.ROSInterruptException:
+                rospy.logerr("ROS Interrupt Exception! Just ignore the exception!")
+        
+        elif server_data.base_state == 0.0 and server_data.send_coordinates:
+            try:
+                server_data.x_coor_pub.publish(server_data.x_coordinate)
+                server_data.y_coor_pub.publish(server_data.y_coordinate)
+                server_data.base_state_pub.publish(server_data.base_state)
+                server_data.send_coordinates = False
+                server_data.map_name_pub.publish(server_data.map_name)
+                print("Coordinate Pubblicate")
+            except rospy.ROSInterruptException:
+                rospy.logerr("ROS Interrupt Exception! Just ignore the exception!")
+        
 
 if __name__ == '__main__':
     """
@@ -299,19 +234,20 @@ if __name__ == '__main__':
     It starts the server putting it in listening mode.
     Once the client is connected to the server it starts a thread for receive the messages from the client
     """
-
-    init_file()
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(ADDR)
     print("[STARTING] server is starting...")
     server.listen()
     print(f"[LISTENING] Server is listening on {SERVER}")
-    while True:     
-        conn, addr = server.accept()
-        thread = threading.Thread(target=handle_client, args=(conn, addr))
-        thread.start()
-        thread.join()
-        print(f"[ACTIVE CONNECTIONS] {threading.activeCount() - 1}")
+    # while True:
+    conn, addr = server.accept()
+    thread = threading.Thread(target=handle_client, args=(conn, addr))
+    thread.start()
+    # thread.join()
+    print(f"[ACTIVE CONNECTIONS] {threading.activeCount() - 1}")
+    init_publishers()
+
+
 
 
 

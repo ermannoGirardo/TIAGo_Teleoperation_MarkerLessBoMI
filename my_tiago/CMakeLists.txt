@@ -11,7 +11,8 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
-  message_generation  
+  message_generation 
+  message_runtime 
   visualization_msgs
   gazebo_msgs
   actionlib
@@ -66,8 +67,7 @@ find_package(OpenCV REQUIRED
 ## Generate messages in the 'msg' folder
  add_message_files(
    FILES
-   odom_position.msg
-   server_velocities.msg
+   Velocities.msg
 #   Message2.msg
  )
 
@@ -88,7 +88,7 @@ find_package(OpenCV REQUIRED
 ## Generate added messages and services with any dependencies listed here
  generate_messages(
    DEPENDENCIES
-   actionlib_msgs   std_msgs  std_srvs
+   actionlib_msgs   std_msgs  std_srvs my_tiago 
  )
 
 ################################################
@@ -121,9 +121,9 @@ find_package(OpenCV REQUIRED
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES my_tiago
-#  CATKIN_DEPENDS roscpp rospy std_msgs
+  INCLUDE_DIRS include
+  LIBRARIES my_tiago
+  CATKIN_DEPENDS roscpp rospy std_msgs 
 #  DEPENDS system_lib
 )
 

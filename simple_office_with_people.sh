@@ -10,7 +10,7 @@ gnome-terminal --tab --title="small_office_navigation" -- bash -c "roslaunch tia
 
 
 source ~/my_ros_ws/devel/setup.bash
-gnome-terminal --tab --title="cmd_vel_pub" -- bash -c "sleep 15; rosrun my_tiago cmd_vel_publisher.py"
+gnome-terminal --tab --title="cmd_vel_pub" -- bash -c "sleep 10; rosrun my_tiago cmd_vel_publisher.py"
 # Da aggiungere nascondi terminale
 #xdotool windowminimize $(xdotool getactivewindow)
 
