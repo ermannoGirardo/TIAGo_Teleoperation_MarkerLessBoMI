@@ -33,7 +33,8 @@ class ServerData:
         self.x_coordinate_arrived = False
         self.y_coordinate_arrived = False
         self.y_coordinate = 0.0
-        self.base_state = -1
+        self.base_state = -1.0
+        self.arm_state = -1.0
         self.send_coordinates = False
         self.map_name = None
         self.already_acquired_map_name = False
@@ -47,7 +48,8 @@ class ServerData:
         self.y_coor_sub = None
         self.map_name_sub = None
         self.base_state_sub = None
-        
+        self.arm_state_sub = None
+
         ## COMPUTE THE MAP REGION
         self.x_min = None
         self.x_max = None
@@ -128,6 +130,15 @@ def map_name_clbk(msg):
         server_data.already_acquired_map_name = True
         print("Map Size Acuired")
 
+    #Real TIAGo
+    elif server_data.map_name == 3.0 and  server_data.already_acquired_map_name == False:
+        #default 500 x 500
+        server_data.x_min = -500
+        server_data.x_max = 500
+        server_data.y_min = -500
+        server_data.y_max = 500
+        server_data.already_acquired_map_name = True
+
 
 
 def base_state_clbk(msg):
@@ -137,6 +148,14 @@ def base_state_clbk(msg):
     global server_data
     server_data.base_state = msg.data
     #print("Base State : " + str(msg.data))
+
+
+def arm_state_clbk(msg):
+    """
+    arm state clbk that store the value into a global variable
+    """
+    global server_data
+    server_data.arm_state = msg.data
 
 
 
@@ -203,8 +222,11 @@ def move_tiago():
     #Declare a subscriber on the topic /server_socket/map_name
     server_data.map_name_sub = rospy.Subscriber('server_socket/map_name',Float32,map_name_clbk)
 
-    #Declare a subscriber on the topic /server_socket/map_name
+    #Declare a subscriber on the topic /server_socket/base_state
     server_data.base_state_sub = rospy.Subscriber('server_socket/base_state',Float32,base_state_clbk)
+
+    #Declare a subscriber on the topic /server_socket/arm_state
+    server_data.arm_state_sub = rospy.Subscriber('server_socket/arm_state',Float32,arm_state_clbk)
 
     #Declare a subscriber on the topic /server_socket/linear_vel
     server_data.linear_vel_sub = rospy.Subscriber('server_socket/linear_vel',Float32,linear_vel_clbk)
@@ -293,20 +315,17 @@ def move_tiago():
                     print("Waiting Move Base Server...")
 
                     #Declare and fill a move base goal
-                    target_pos = move_base_msgs.msg.MoveBaseActionGoal()
-                    target_pos.goal.target_pose.header.frame_id = 'map'
-                    time_now = rospy.Time.now()
-                    target_pos.goal.target_pose.header.seq = counter_seq
+                    goal = move_base_msgs.msg.MoveBaseGoal()
+                    goal.target_pose.header.frame_id = 'map'
+                    goal.target_pose.header.seq = counter_seq
                     counter_seq = counter_seq + 1
-                    # target_pos.goal.target_pose.header.stamp.secs = time_now.secs
-                    # target_pos.goal.target_pose.header.stamp.nsecs = time_now.nsecs
-                    target_pos.goal.target_pose.header.stamp = rospy.Time.now()
-                    target_pos.goal.target_pose.pose.position.x = target_position.x
-                    target_pos.goal.target_pose.pose.position.y = target_position.y
-                    target_pos.goal.target_pose.pose.orientation.w = 1 #default orientation
+                    goal.target_pose.header.stamp = rospy.Time.now()
+                    goal.target_pose.pose.position.x = target_position.x
+                    goal.target_pose.pose.position.y = target_position.y
+                    goal.target_pose.pose.orientation.w = 1 #default orientation
 
 
-                    move_base_client.send_goal(target_pos.goal)
+                    move_base_client.send_goal(goal)
                     first_goal = False
                     print("Goal position sended")
                     # wait = move_base_client.wait_for_result()

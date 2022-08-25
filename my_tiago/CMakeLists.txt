@@ -185,6 +185,7 @@ add_dependencies(head_image_processing ${${PROJECT_NAME}_EXPORTED_TARGETS} ${cat
    scripts/image_server_TCP.py
    scripts/cmd_vel_publisher.py
    scripts/server_socket.py
+   scripts/teleoperate_arm.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 

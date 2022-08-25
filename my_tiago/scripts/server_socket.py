@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from posixpath import split
 import socket
 import threading
 from xmlrpc.client import Server
@@ -9,6 +10,7 @@ import os
 from queue import Queue
 import subprocess
 import time
+import rosgraph
 
 # ROS
 import rospy
@@ -40,17 +42,24 @@ class ServerData:
         self.x_coordinate  = None
         self.y_coordinate = None
         self.base_state = None
+        self.arm_state = None
         self.base_state_pub = None
+        self.arm_state_pub = None
         self.send_coordinates = False
         self.map_name = None
-        #self.vel_publisher = None
-        #self.coor_publisher = None
+        self.vector_angle = None
+        self.vector_amplitude = None
+        self.send_vector_info = False
+        
         #ROS Publisher
         self.linear_vel_pub = None
         self.ang_vel_pub = None
         self.x_coor_pub = None
         self.y_coor_pub = None
         self.map_name_pub = None
+        self.amplitude_vector_pub = None
+        self.angle_vector_pub = None
+
         ###################################
 
 #Instanciate an object of the class
@@ -83,7 +92,6 @@ def decode_msg(msg):
     :param
         msg: string received by client
     """
-    global base_teleop_state,my_settings_file,list_of_lines,matrix_file
     global server_data
 
     #check for lin_vel in msg
@@ -92,7 +100,6 @@ def decode_msg(msg):
         float_pos = position + len("lin_vel:")
         if msg[float_pos] == '-':
             lin_vel =msg[float_pos:float_pos + 4]
-            flag_negative = True
         else:
             lin_vel = msg[float_pos: float_pos + 3]
             flag_negative = False
@@ -111,7 +118,14 @@ def decode_msg(msg):
 
         server_data.angular_vel = float(ang_vel)
 
-    
+    #Extract amplitude and angle of the 2D vector
+    if "angle" in msg:
+        splitted_msg = msg.split(" ")
+        angle = splitted_msg[1]
+        server_data.vector_angle = int(angle)
+        amplitude = splitted_msg[3]
+        server_data.vector_amplitude = int(amplitude)
+        server_data.send_vector_info = True
 
     #check for target position for odom GUI
     if 'x:' in msg:
@@ -121,10 +135,6 @@ def decode_msg(msg):
             x_coo = msg[int_pos:int_pos + 2]
         else:
             x_coo = msg[int_pos]
-
-        #compose the data in order to be written in the file
-        #in the following format
-        #+/-x.x 0/1
 
         server_data.x_coordinate = float(x_coo)
 
@@ -159,20 +169,46 @@ def decode_msg(msg):
         server_data.map_name = 2.0
         server_data.map_name_pub.publish(msg)
 
+    elif 'real_tiago' == msg:
+        os.system('./real_tiago.sh')
+        server_data.map_name = 3.0
+        server_data.map_name_pub.publish(server_data.map_name)
+
 
     # ---CHECK AND UPDATE THE STATE OF THE BASE ---#
     # 'nine regions' --> +1.0
     # 'odom' --> +0.0
 
     if "nine region" in msg:
-        #write in the file the base state value
         server_data.base_state = 1.0
+        server_data.arm_state = -1.0
+        # -- Update arm and base states -- #
+        server_data.base_state_pub.publish(server_data.base_state)
+        server_data.map_name_pub.publish(server_data.map_name)
+        server_data.arm_state_pub.publish(server_data.arm_state)
+
+    if "odom" in msg:
+        server_data.base_state = 0.0
+        server_data.arm_state = -1.0
+        # -- Update arm and base states -- #
+        server_data.base_state_pub.publish(server_data.base_state)
+        server_data.map_name_pub.publish(server_data.map_name)
+        server_data.arm_state_pub.publish(server_data.arm_state)
+
+    if "2D vector" in msg:
+        server_data.base_state = -1.0
+        server_data.arm_state = 1.0
+        # -- Update arm,base states and map -- #
+        server_data.arm_state_pub.publish(server_data.arm_state)
         server_data.base_state_pub.publish(server_data.base_state)
         server_data.map_name_pub.publish(server_data.map_name)
 
-    if "odom" in msg:
-        #write in the file the base state value
-        server_data.base_state = 0.0
+
+    if "1D vector" in msg:
+        server_data.base_state = -1.0
+        server_data.arm_state = 0.0
+        # -- Update arm,base states and map -- #
+        server_data.arm_state_pub.publish(server_data.arm_state)
         server_data.base_state_pub.publish(server_data.base_state)
         server_data.map_name_pub.publish(server_data.map_name)
 
@@ -183,21 +219,30 @@ def init_publishers():
     time.sleep(1)
     rospy.init_node("server_socket", anonymous=True)
     print("Server Node STARTED")
+
+    # -- Declare all ROS publishers -- #
     server_data.linear_vel_pub = rospy.Publisher("server_socket/linear_vel",Float32,queue_size=10)
     server_data.ang_vel_pub = rospy.Publisher("server_socket/angular_vel",Float32,queue_size=10)
     #velocities_publisher = rospy.Publisher("server_socket/velocities",Velocities,queue_size=10)
     server_data.x_coor_pub = rospy.Publisher("server_socket/x_coordinate",Float32,queue_size=10)
     server_data.y_coor_pub = rospy.Publisher("server_socket/y_coordinate",Float32,queue_size=10)
     server_data.map_name_pub = rospy.Publisher("server_socket/map_name",Float32,queue_size=10)
-    server_data.base_state_pub = rospy.Publisher("server_socket/base_state",Float32,queue_size=1)
+    server_data.base_state_pub = rospy.Publisher("server_socket/base_state",Float32,queue_size=10)
+    server_data.arm_state_pub = rospy.Publisher("server_socket/arm_state",Float32,queue_size=10)
+    server_data.amplitude_vector_pub = rospy.Publisher("server_socket/vector_amplitude", Int32, queue_size=10)
+    server_data.angle_vector_pub = rospy.Publisher("server_socket/vector_angle", Int32, queue_size=10)
+
+
 
     rate = rospy.Rate(20)
     server_data.linear_vel = 0.0
     server_data.angular_vel = 0.0
 
     rate = rospy.Rate(20)
+
     while not rospy.is_shutdown():
-        #if glb_base_state == 1.0:  
+
+        # -- Nine Region GUI -- #
         if server_data.base_state == 1.0:
 
             try:
@@ -208,7 +253,8 @@ def init_publishers():
                 server_data.linear_vel_pub.publish(server_data.linear_vel)
                 server_data.ang_vel_pub.publish(server_data.angular_vel)
                 server_data.base_state_pub.publish(server_data.base_state)
-                server_data.map_name_pub.publish(server_data.map_name)
+                server_data.arm_state_pub.publish(server_data.arm_state)
+                #server_data.map_name_pub.publish(server_data.map_name)
 
                 rate.sleep()
                 print("Velocità pubblicate")
@@ -220,12 +266,33 @@ def init_publishers():
                 server_data.x_coor_pub.publish(server_data.x_coordinate)
                 server_data.y_coor_pub.publish(server_data.y_coordinate)
                 server_data.base_state_pub.publish(server_data.base_state)
+                server_data.arm_state_pub.publish(server_data.arm_state)
                 server_data.send_coordinates = False
-                server_data.map_name_pub.publish(server_data.map_name)
+               # server_data.map_name_pub.publish(server_data.map_name)
                 print("Coordinate Pubblicate")
             except rospy.ROSInterruptException:
                 rospy.logerr("ROS Interrupt Exception! Just ignore the exception!")
         
+
+        #For 1D vector
+        elif server_data.arm_state == 0.0 and server_data.send_vector_info:
+            server_data.arm_state_pub.publish(server_data.arm_state)
+            server_data.base_state_pub.publish(server_data.base_state)
+            server_data.amplitude_vector_pub.publish(server_data.vector_amplitude)
+            server_data.angle_vector_pub.publish(server_data.vector_angle)
+            #Restore to False to the next turn
+            server_data.send_vector_info = False
+
+        #For 2D vector
+        elif server_data.arm_state == 1.0 and server_data.send_vector_info:
+            server_data.arm_state_pub.publish(server_data.arm_state)
+            server_data.base_state_pub.publish(server_data.base_state)
+            server_data.amplitude_vector_pub.publish(server_data.vector_amplitude)
+            server_data.angle_vector_pub.publish(server_data.vector_angle)
+            #Restore to False to the next turn
+            server_data.send_vector_info = False
+
+
 
 if __name__ == '__main__':
     """
