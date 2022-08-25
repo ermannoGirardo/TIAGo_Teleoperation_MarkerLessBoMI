@@ -14,8 +14,7 @@ from scripts import utils
 import numpy as np
 from scripts.stopwatch import StopWatch
 from scripts.reaching_functions import compute_odom_pos
-from scripts.socket_client import parse_target_pos,send_data
-# from main_reaching import manage_fsm_state
+from scripts.socket_client import *
 import queue
 
 #open eyes_cls_calib
@@ -34,9 +33,15 @@ rv_eye = []
 lv_eye = []
 lx_eye_threshold = None
 rx_eye_threshold = None
+controlling = ""
+#In order to track the base and arm FSM states
 base_state = queue.Queue()
 base_var = False
 base_state.put(base_var)
+arm_state =queue.Queue()
+arm_var = False
+arm_state.put(arm_var)
+
 
 #mouse coordinates
 x_coordinate = None
@@ -73,6 +78,20 @@ camera = cv.VideoCapture(0)
 map_name = None
 
 
+class Vector:
+    """
+    This class contains the information needed to manipulate vectors
+    Variables:
+        :angle is the angle that the vector span with the x axis
+        :amplitude is the length of the vector
+    """
+    def __init__(self):
+        self.angle = None
+        self.amplitude = None
+
+
+vector = Vector()
+
 # landmark detection function 
 def landmarksDetection(img, results, draw=False):
     img_height, img_width= img.shape[:2]
@@ -90,6 +109,29 @@ def euclaideanDistance(point, point1):
     x1, y1 = point1
     distance = math.sqrt((x1 - x)**2 + (y1 - y)**2)
     return distance
+
+def update_teleoperation_state(state):
+    '''
+    Simple function to update the teleoperation mode
+    In particular this function is called by main reaching and updates the state
+    using a global variable controlling
+    '''
+    global controlling 
+    if state == "base":
+        controlling = "base"
+    elif state == "arm":
+        controlling = "arm"
+    elif state == "":
+        controlling = ""
+
+def update_vector(amplitude,angle):
+    """
+    Simple function to update cursor information
+    In order to send once full eyes closure is detected
+    """
+    global vector
+    vector.amplitude = amplitude
+    vector.angle = angle
 
 # Blinking Ratio
 def blinkRatio(img, landmarks, right_indices, left_indices):
@@ -139,7 +181,7 @@ def blinking_detection(start,cap):
 
     global frame_counter, lx_eye_threshold, rx_eye_threshold, map_face_mesh
     global CEF_COUNTER, CEF_WINK_COUNTER, TOTAL_BLINKS, TOTAL_EYES_CLS, TOTAL_WINK, cls_eyes_flag, CLOSED_EYES_FRAME, FONTS,CLS_RATIO_THRESHOLD, LEFT_EYE, RIGHT_EYE
-    global eye_detector_fsm, base_var,base_state, x_coordinate,y_coordinate, map_name
+    global eye_detector_fsm, base_var,base_state,arm_var,arm_state, x_coordinate,y_coordinate, map_name,controlling
     # camera object 
     # camera = cv.VideoCapture(0)
 
@@ -232,35 +274,46 @@ def blinking_detection(start,cap):
                     three_time_counter += 1 
                     first_time_flag = True
                     eye_cls_counter = 0
+                    #change the value of the states
+                    #maybe in the future with the mixed teleop I have to insert it into an if
                     base_var = not base_var
                     base_state.put(base_var)
+                    arm_var = not arm_var
+                    arm_state.put(arm_var)
                 
                 # if statement to detect eyes closure for 1.5 second
-                elif (timer_cls_eyes.elapsed_time >= CLS_TIME_THRESHOLD) and (not already_closed) and (base_var == True):
+                elif (timer_cls_eyes.elapsed_time >= CLS_TIME_THRESHOLD) and (not already_closed):
                     TOTAL_EYES_CLS +=1
                     timer_cls_eyes.start()
                     already_closed = True
-                    target_pos_x, target_pos_y = compute_odom_pos(x_coordinate,y_coordinate)
+                    #If in base teleoperation mode
+                    if controlling == "base":
+                        target_pos_x, target_pos_y = compute_odom_pos(x_coordinate,y_coordinate)
+                        
+                        #Customize Data to the running simulation
+                        #In order to center the cartesian Axes on the map
+                        if map_name == 'Simple Office':
+                            target_pos_y = target_pos_y * (-1.)
+                            temporary_var = target_pos_y
+                            target_pos_y = target_pos_x
+                            target_pos_x = temporary_var
+
+                        elif map_name == "Simple Office With People":
+                            target_pos_y = target_pos_y * (-1.)
+                            temporary_var = target_pos_y
+                            target_pos_y = target_pos_x
+                            target_pos_x = temporary_var
+                        
+                        #Send now the two coordinates to the server
+                        bytes_to_send = parse_target_pos(target_pos_x,target_pos_y)
+                        send_data(bytes_to_send)
+
+                    elif controlling == "arm":
+                        bytes_to_send = parse_2D_vector(vector.angle,vector.amplitude)
+                        send_data(bytes_to_send)
+
                     #print("Hai selezionato:" + "x: " + str(target_pos_x) + " y: " + str(target_pos_y))
                     
-                    #Customize Data to the running simulation
-                    #In order to center the cartesian Axes on the map
-                    if map_name == 'Simple Office':
-                        target_pos_y = target_pos_y * (-1.)
-                        temporary_var = target_pos_y
-                        target_pos_y = target_pos_x
-                        target_pos_x = temporary_var
-
-                    elif map_name == "Simple Office With People":
-                        target_pos_y = target_pos_y * (-1.)
-                        temporary_var = target_pos_y
-                        target_pos_y = target_pos_x
-                        target_pos_x = temporary_var
-
-                    #Send now the two coordinates to the server
-                    bytes_to_send = parse_target_pos(target_pos_x,target_pos_y)
-                    send_data(bytes_to_send)
-
 
                 # if statement to detect eye wink
                 elif (timer_wink.elapsed_time >=  WINK_TIME_THRESHOLD) and (not already_wink):
@@ -377,7 +430,7 @@ def eyes_calib():
         lx_eye_range= max_lv_eye - min_lv_eye
         rx_eye_range = max_rv_eye - min_rv_eye
         
-        #Compute 20% of the range
+        #Compute 30% of the range
         lx_eye_percent = 0.3 * lx_eye_range
         rx_eye_percent = 0.3 * rx_eye_range
 

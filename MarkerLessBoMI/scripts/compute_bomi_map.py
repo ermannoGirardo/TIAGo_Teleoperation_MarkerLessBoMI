@@ -45,6 +45,7 @@ def compute_vaf(x, x_rec):
     x_zm = x - np.mean(x, 0)
     x_rec_zm = x_rec - np.mean(x_rec, 0)
     vaf = 1 - (np.sum(np.sum((x_zm - x_rec_zm) ** 2)) / (np.sum(np.sum(x_zm ** 2))))
+    vaf_1 = np.divide((np.sum((x_zm - x_rec_zm) ** 2,axis=0)) , np.sum(x_zm ** 2,axis=0))
     return vaf * 100
 
 
@@ -819,6 +820,7 @@ class PrincipalComponentAnalysis(object):
         pca = PCA(n_components=len(train_signal[0]))
         pca.fit(train_signal)
         coeff = pca.components_.T
+
 
         train_score = np.matmul((train_signal - np.mean(train_signal, 0)), coeff)
         train_score[:, self._pc:] = 0

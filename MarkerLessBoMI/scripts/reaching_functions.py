@@ -248,13 +248,13 @@ def compute_vel(r):
     Given the region compute the velocities
     """
     if r.region == 1:
-        r.lin_vel = 1.0
+        r.lin_vel = 0.2
         r.ang_vel = 0.5
     elif r.region == 2:
-        r.lin_vel = 1.0
+        r.lin_vel = 0.2
         r.ang_vel = 0.0
     elif r.region == 3:
-        r.lin_vel = 1.0
+        r.lin_vel = 0.2
         r.ang_vel = -0.5
     elif r.region == 4:
         r.lin_vel = 0.0
@@ -266,13 +266,13 @@ def compute_vel(r):
         r.lin_vel = 0.0
         r.ang_vel = -0.5
     elif r.region == 7:
-        r.lin_vel = -1.0
+        r.lin_vel = -0.2
         r.ang_vel = 0.5
     elif r.region == 8:
-        r.lin_vel = -1.0
+        r.lin_vel = -0.2
         r.ang_vel = 0.0
     elif r.region == 9:
-        r.lin_vel = -1.0
+        r.lin_vel = -0.2
         r.ang_vel = -0.5
         
 
@@ -544,15 +544,20 @@ def compute_odom_pos(x,y):
             #Compute if it is nearest at index or index + 1
             if (x > point_on_x_axis[index] + delta_x/2):
                 true_index_x = index + 1
-                odom_x = true_index_x - 10
+                odom_x = true_index_x - 10.0
                 break
             else:
                 true_index_x = index
-                odom_x = true_index_x - 10
-                break
-    if (x>1800):
-        odom_x = 10
+                odom_x = true_index_x - 10.0
 
+                break
+
+    #Limit cases
+    if (x>1800):
+        odom_x = 9.9
+    
+    elif(x<0.0):
+        odom_x = -9.9
     
     #then scan the y-axis
     for index in range (y_point_len-1):
@@ -560,17 +565,20 @@ def compute_odom_pos(x,y):
             #Compute if it is nearest at index or index + 1
             if (y > point_on_y_axis[index] + delta_y/2):
                 true_index_y = index + 1
-                odom_y = true_index_y - 7
+                odom_y = true_index_y - 7.0
                 odom_y = - odom_y
                 break
             else:
                 true_index_y = index
-                odom_y = true_index_y - 7
+                odom_y = true_index_y - 7.0
                 odom_y = - odom_y
                 break
     
+    #Limit cases
     if (y>900):
-        odom_y = -7
+        odom_y = -7.0
+    elif (y<0.0):
+        odom_y = 7.0
     return odom_x,odom_y
 
 

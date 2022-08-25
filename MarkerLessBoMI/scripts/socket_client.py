@@ -28,20 +28,18 @@ DISCONNECT_BYTES_MESSAGE = bytes(DISCONNECT_MESSAGE,'UTF-8')
 #To take trace of the base teleoperation state
 base_state = None
 
-def parse_data(r):
+#To take trace of the arm teleoperation state
+arm_state = None
+
+def parse_velocities(r):
     """
-    This function parse data into bytes in order to be send by socket communication as byte format
-    The attributes control_base and control_arn specifies if the user want to control arm or base
+    This function parse velocities data into bytes in order to be send by socket communication as byte format
+    
     """
     global bytes_to_send
     if r.control_base == True:
         #We have to send base commands
         string_data = "lin_vel:" + str(r.lin_vel) + " ang_vel:" + str(r.ang_vel)
-    elif r.control_arm == True:
-        #we have to send arm commands
-        string_data = "joint1:" + str(.1) + " joint2:" + str(r.joint_state[1]) + " joint3:" + str(r.joint_state[2]) + \
-        " joint4:" + str(r.joint_state[3]) + " joint5:" + str(r.joint_state[4]) + " joint6:" + str(r.joint_state[5]) + \
-        " joint7:" + str(r.joint_state[6]) + " joint8:" + str(r.joint_state[7]) 
 
     bytes_data = bytes(string_data,'UTF-8')
     bytes_to_send =bytes_data
@@ -59,6 +57,19 @@ def parse_target_pos(x,y):
     string_data = "x:" + str(x) + " y:" + str(y)
     bytes_to_send = bytes(string_data,'UTF-8')
     return bytes_to_send
+
+
+def parse_2D_vector(alpha,amplitude):
+    """
+    Simply function that parse information about 2D vector to be send as bytes format
+    :param alpha: is the angle in degree that the vector span with respect the x axis of the "2D vector GUI"
+    :param amplitude: is the amplitude of the vector, that corresponds length of the vector of the "2D vector GUI"
+    """
+    global bytes_to_send
+    string_data = "angle: " + str(alpha) + " amplitude: " + str(amplitude) + " "
+    bytes_to_send = bytes(string_data,"UTF-8")
+    return bytes_to_send
+
 
 def parse_bash_file(FORMAT):
     """
@@ -108,11 +119,24 @@ def set_base_teleop_state(base_teleop_state):
         bytes_to_send = bytes("odom",'UTF-8')
     return bytes_to_send
 
-
+def set_arm_teleop_state(arm_teleop_state):
+    """
+    This function simply change the arm teleop state in order to send the value 
+    to the socket server in order to keep track of the arm teleoperation state
+    arm_teleop_state == True --> vector on 2D plane
+    arm_teleop_state == False --> vector on 1D plane
+    """
+    global arm_state,bytes_to_send
+    arm_state = arm_teleop_state
+    if arm_state == True:
+        bytes_to_send = bytes("2D vector",'UTF-8')
+    elif arm_state == False:
+        bytes_to_send = bytes("1D vector",'UTF-8')
+    return bytes_to_send
 
 def client_connected(connection):
     global send,bytes_to_send,close_connection
-    HOST = "192.168.5.27"  # The server's hostname or IP address
+    HOST = "192.168.1.5"  # The server's hostname or IP address
     #HOST = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
     PORT = 5051 # The port used by the server
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
