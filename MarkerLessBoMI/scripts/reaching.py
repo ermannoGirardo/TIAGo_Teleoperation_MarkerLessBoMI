@@ -9,6 +9,7 @@ class Reaching:
         # pygame parameters
         self._width = 1200
         self._height = 650
+        self._depth = 650
         self.base_width = 1800
         self.base_height = 900
         self._crs_radius = 15
@@ -73,6 +74,10 @@ class Reaching:
     @property
     def height(self):
         return self._height
+
+    @property
+    def depth(self):
+        return self._depth
 
     @property
     def crs_radius(self):
