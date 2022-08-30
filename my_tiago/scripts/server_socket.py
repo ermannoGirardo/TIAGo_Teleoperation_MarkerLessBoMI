@@ -257,7 +257,7 @@ def init_publishers():
                 #server_data.map_name_pub.publish(server_data.map_name)
 
                 rate.sleep()
-                print("Velocità pubblicate")
+                #print("Velocità pubblicate")
             except rospy.ROSInterruptException:
                 rospy.logerr("ROS Interrupt Exception! Just ignore the exception!")
         

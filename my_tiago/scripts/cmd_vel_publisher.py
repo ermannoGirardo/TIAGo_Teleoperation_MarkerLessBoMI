@@ -2,6 +2,7 @@
 
 #ROS LIBRARIES
 
+from http import server
 from re import T
 from wsgiref.simple_server import server_version
 import rospy
@@ -104,6 +105,33 @@ def check_valid_coordinate(x_coor,y_coor):
     else:
         flag = False
     return flag
+
+def recompute_target_coordinates(x_coor,y_coor):
+    """
+    This function recompute the coordinates of the target, depending on the value of the coordinates
+    In particular it found what coordinate is out of the map and assign it the a boundary value
+    :params
+        x_coor: the x coordinate of the target
+        y_coor: the y coordinate of the target
+    :return
+        x_target: the recomputed x coordinate of the target
+        y_target: the recomputed y coordinate of the target
+    """
+    global server_data
+
+    # -- For x component -- #
+    if x_coor < server_data.x_min:
+        x_coor = server_data.x_min + .5
+    elif x_coor  > server_data.x_max:
+        x_coor = server_data.x_max - .5
+        
+    # -- For y component -- #
+    if y_coor < server_data.y_min:
+        y_coor = server_data.y_min + .5
+    elif y_coor  > server_data.y_max:
+        y_coor = server_data.y_max - .5
+
+    return x_coor,y_coor
 
 def map_name_clbk(msg):
     """
@@ -278,17 +306,6 @@ def move_tiago():
 
         #if odom GUI is stated
         if server_data.base_state == 0.0:
-            
-            #if at least one goal has been published
-            if first_goal == False:
-                #clear all move base goals
-                move_base_client.cancel_all_goals()
-
-            stop_msg = Twist()
-            stop_msg.linear.x = 0
-            stop_msg.angular.z = 0
-            cmd_vel_publisher.publish(stop_msg)
-            time.sleep(.5)
 
             #if both coordinates are arrived
             if server_data.x_coordinate_arrived and server_data.y_coordinate_arrived:
@@ -306,36 +323,40 @@ def move_tiago():
                 #if yes then publish as goal with MoveBase
                 
                 flag = check_valid_coordinate(target_position.x,target_position.y)
-                if flag == True:
 
-                    print("The selected coordinates are valid!")
+                if flag == False:
+                    # -- If target out of map limit the component that exceed -- #
+                    print("Original Target Out Of map, I am recomputing it and send it!!!")
+                    target_position.x ,target_position.y = recompute_target_coordinates(target_position.x,target_position.y)
+                    print("Recomputed coordinates are X: " + str(target_position.x) + " Y: " + str(target_position.y))
 
-                    #wait the server and send the goal
-                    move_base_client.wait_for_server()
-                    print("Waiting Move Base Server...")
+                print("The selected coordinates are valid!")
 
-                    #Declare and fill a move base goal
-                    goal = move_base_msgs.msg.MoveBaseGoal()
-                    goal.target_pose.header.frame_id = 'map'
-                    goal.target_pose.header.seq = counter_seq
-                    counter_seq = counter_seq + 1
-                    goal.target_pose.header.stamp = rospy.Time.now()
-                    goal.target_pose.pose.position.x = target_position.x
-                    goal.target_pose.pose.position.y = target_position.y
-                    goal.target_pose.pose.orientation.w = 1 #default orientation
+                #wait the server and send the goal
+                move_base_client.wait_for_server()
+                print("Waiting Move Base Server...")
+
+                #Declare and fill a move base goal
+                goal = move_base_msgs.msg.MoveBaseGoal()
+                goal.target_pose.header.frame_id = 'map'
+                goal.target_pose.header.seq = counter_seq
+                counter_seq = counter_seq + 1
+                goal.target_pose.header.stamp = rospy.Time.now()
+                goal.target_pose.pose.position.x = target_position.x
+                goal.target_pose.pose.position.y = target_position.y
+                goal.target_pose.pose.orientation.w = 1 #default orientation
 
 
-                    move_base_client.send_goal(goal)
-                    first_goal = False
-                    print("Goal position sended")
-                    # wait = move_base_client.wait_for_result()
-                    # if not wait:
-                    #     rospy.logerr("Action server not available!")
-                    #     rospy.signal_shutdown("Action server not available!")
-                    # else:
-                    #     print("TIAGo is arrived in x: " + str(target_position.x) + " y: " + str(target_position.y))
-                else:
-                    print("Tareget Out Of Map")
+                move_base_client.send_goal(goal)
+                first_goal = False
+                print("Goal position sended")
+                # wait = move_base_client.wait_for_result()
+                # if not wait:
+                #     rospy.logerr("Action server not available!")
+                #     rospy.signal_shutdown("Action server not available!")
+                # else:
+                #     print("TIAGo is arrived in x: " + str(target_position.x) + " y: " + str(target_position.y))
+                
 
 
         rate.sleep()

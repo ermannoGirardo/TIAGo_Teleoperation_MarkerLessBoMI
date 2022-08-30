@@ -53,7 +53,7 @@ class TeleoperationArm:
 
         # -- Predefined Configuration TIAGo one Arm -- #
         # -- Format (x,y,z,rx,ry,rz)
-        self.predefined_pose = [0.6,0,0.6,self.parallel_gripper[0],self.parallel_gripper[1],self.parallel_gripper[2],self.parallel_gripper[3]]
+        self.predefined_pose = [0.45,0,0.6,self.parallel_gripper[0],self.parallel_gripper[1],self.parallel_gripper[2],self.parallel_gripper[3]]
         self.first_plan = False
 
 teleoperate_arm = TeleoperationArm()
@@ -87,7 +87,7 @@ def arm_state_clbk(msg):
     """
     global teleoperate_arm
     teleoperate_arm.arm_state = msg.data
-    print("Arm State correctly updated")
+    print("Arm State correctly updated to: " + str(msg.data) )
 
 def map_name_clbk(msg):
     """
@@ -117,6 +117,8 @@ def compute_1D_motion(translation):
     angle = teleoperate_arm.vector_angle
     amplitude = teleoperate_arm.vector_amplitude
 
+    print("A 1D vector with amplitude: " +str(amplitude) + " and angle: " + str(angle) + " has been detected")
+
     # -- y = 0.00188889x represent the linear transformation that map 
     # -- 0 - 450 --> 0 - 0.85
     transform = 0.00188889
@@ -132,9 +134,26 @@ def compute_1D_motion(translation):
     else:
         print("1D vector angle not valid!")
 
+    # -- Limit the components to max or min -- #
+
+    # -- Limit the x component --#
+    if translation[0] > teleoperate_arm.max_x:
+        translation[0] = teleoperate_arm.max_x
+    
+    elif translation[0] < teleoperate_arm.min_x:
+        translation[0] = teleoperate_arm.min_x
+
+    # -- Limit the y component -- #
+    if translation[1] > teleoperate_arm.max_y:
+        translation[1] = teleoperate_arm.max_y
+
+    elif translation[1] < teleoperate_arm.min_y:
+        translation[1] = teleoperate_arm.min_y
+
     # -- Limit the z component -- #
     if translation[2] > teleoperate_arm.max_z:
         translation[2] = teleoperate_arm.max_z
+
     elif translation[2] < teleoperate_arm.min_z:
         translation[2] = teleoperate_arm.min_z
 
@@ -186,15 +205,13 @@ def compute_2D_motion(translation):
 
         # --Decompose Amplitude along x and y component -- #
         x_amplitude = amplitude * math.sin(angle_radians)
-        print("Sin Result: " + str(math.sin(angle_radians)))
+        # print("Sin Result: " + str(math.sin(angle_radians)))
         y_amplitude = amplitude  * math.cos(angle_radians)
-        print("Cos Result: " + str(math.cos(angle_radians)))
+        # print("Cos Result: " + str(math.cos(angle_radians)))
         print("X amp: " + str(x_amplitude) + " Y amp: " + str(y_amplitude))
         
         # -- Found the scaling factor for the components -- #
-        scaling_factor_x = angle / 90
-        scaling_factor_y = 1 - (angle / 90)
-        translation[0] = translation[0] - (transform_x * x_amplitude)
+        translation[0] = translation[0] + (transform_x * x_amplitude)
         translation[1] = translation[1] - (transform_y * y_amplitude)
         print("Product for x component : " + str(transform_x * x_amplitude))
         print("Product for y component " + str(transform_y * y_amplitude))
@@ -207,16 +224,14 @@ def compute_2D_motion(translation):
         triangle_angle = 180 - angle
         triangle_angle_radians = math.radians(triangle_angle)
         x_amplitude = amplitude * math.sin(triangle_angle_radians)
-        print("Sin Result:   " + str(math.sin(triangle_angle_radians)))
-        print("Cos Result: " + str(math.cos(triangle_angle_radians)))
+        # print("Sin Result:   " + str(math.sin(triangle_angle_radians)))
+        # print("Cos Result: " + str(math.cos(triangle_angle_radians)))
         y_amplitude = amplitude  * math.cos(triangle_angle_radians)
         print("X amp: " + str(x_amplitude) + " Y amp: " + str(y_amplitude))
 
         # -- Found the scaling factor for the components -- #
-        scaling_factor_x = 2 - (angle / 90)
-        scaling_factor_y = (angle / 90) - 1
-        translation[0] = translation[0] - (transform_x * x_amplitude)
-        translation[1] = translation[1] - (transform_y * y_amplitude)
+        translation[0] = translation[0] + (transform_x * x_amplitude)
+        translation[1] = translation[1] + (transform_y * y_amplitude)
         print("Product for x component : " + str(transform_x * x_amplitude))
         print("Product for y component " + str(transform_y * y_amplitude))
          
@@ -229,13 +244,11 @@ def compute_2D_motion(translation):
         triangle_angle_radians = math.radians(triangle_angle)
         x_amplitude = amplitude * math.sin(triangle_angle_radians)
         y_amplitude = amplitude  * math.cos(triangle_angle_radians)
-        print("Sin Result: " + str(math.sin(triangle_angle_radians)))
-        print("Cos Result: " + str(math.cos(triangle_angle_radians)))
+        # print("Sin Result: " + str(math.sin(triangle_angle_radians)))
+        # print("Cos Result: " + str(math.cos(triangle_angle_radians)))
         print("X amp: " + str(x_amplitude) + " Y amp: " + str(y_amplitude))
 
         # -- Found the scaling factor for the components -- #
-        scaling_factor_x = (angle / 90) - 2
-        scaling_factor_y = 3 - (angle / 90)
         translation[0] = translation[0] - (transform_x * x_amplitude)
         translation[1] = translation[1] + (transform_y * y_amplitude)
         print("Product for x component : " + str(transform_x * x_amplitude))
@@ -250,15 +263,11 @@ def compute_2D_motion(translation):
         triangle_angle_radians = math.radians(triangle_angle)
         x_amplitude = amplitude * math.sin(triangle_angle_radians)
         y_amplitude = amplitude  * math.cos(triangle_angle_radians)
-        print("Sin Result: " + str(math.sin(triangle_angle_radians)))
-        print("Cos Result: " + str(math.cos(triangle_angle_radians)))
+        # print("Sin Result: " + str(math.sin(triangle_angle_radians)))
+        # print("Cos Result: " + str(math.cos(triangle_angle_radians)))
         print("X amp: " + str(x_amplitude) + " Y amp: " + str(y_amplitude))
 
         # -- Found the scaling factor for the components -- #
-        scaling_factor_x = 4 - (angle / 90)
-        scaling_factor_y = (angle / 90) - 3
-        # translation[0] = translation[0] - (scaling_factor_x * transform_x * x_amplitude) 
-        # translation[1] = translation[1] - (scaling_factor_y * transform_y * y_amplitude)
         translation[0] = translation[0] - (transform_x * x_amplitude)
         translation[1] = translation[1] - (transform_y * y_amplitude)
         print("Product for x component : " + str(transform_x * x_amplitude))
@@ -280,7 +289,14 @@ def compute_2D_motion(translation):
     elif translation[1] < teleoperate_arm.min_y:
         translation[1] = teleoperate_arm.min_y
 
-    print("Before Exit Translation is " + str(list(translation)) )
+    # -- Limit the z component -- #
+    if translation[2] > teleoperate_arm.max_z:
+        translation[2] = teleoperate_arm.max_z
+
+    elif translation[2] < teleoperate_arm.min_z:
+        translation[2] = teleoperate_arm.min_z
+
+    # print("Before Exit Translation is " + str(list(translation)) )
 
     return translation
 
@@ -352,6 +368,7 @@ def teleoperate_tiago_arm():
 
             # -- If 1D vector state --#
             if teleoperate_arm.arm_state == 0.0:
+                print("1D Vector Teleoperation")
 
                 # -- Try to extract tf information between /base_footprint' and '/arm_tool_link -- #
                 try:
