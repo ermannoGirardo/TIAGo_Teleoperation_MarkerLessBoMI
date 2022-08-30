@@ -190,6 +190,8 @@ def blinking_detection(start,cap):
     timer_cls_three_times = StopWatch()
     timer_wink = StopWatch()
     
+    timer_cls_three_times.start()
+
     #counters 
     eye_cls_counter = 0  
     three_time_counter = 0 
@@ -233,15 +235,10 @@ def blinking_detection(start,cap):
                         if first_time_flag:
                             timer_cls_three_times.start()
                             first_time_flag = False
-                    if (timer_cls_three_times.elapsed_time > 1500):
-                        timer_cls_three_times.start()
-                        eye_cls_counter = 0
-                        first_time_flag = True
-
                     CEF_COUNTER +=1
                     # cv.putText(frame, 'Blink', (200, 50), FONTS, 1.3, utils.PINK, 2)
                     utils.colorBackgroundText(frame,  f'Blink', FONTS, 1.7, (int(frame_height/2), 100), 2, utils.YELLOW, pad_x=6, pad_y=6, )
-
+                
                 else:
                     timer_cls_eyes.start()
                     cls_eyes_flag = False
@@ -250,6 +247,15 @@ def blinking_detection(start,cap):
                         TOTAL_BLINKS +=1
                         CEF_COUNTER =0
                         eye_cls_counter +=1
+
+                # -- If timer elapsed restore the counters --#
+                if (timer_cls_three_times.elapsed_time > 3000):
+                    # timer_cls_three_times.start()
+                    eye_cls_counter = 0
+                    first_time_flag = True
+                
+                   
+                
                
                 #winking
                 if (lvDistance <= lx_eye_threshold) ^ (rvDistance <= rx_eye_threshold):
@@ -270,7 +276,7 @@ def blinking_detection(start,cap):
                 
                 # if statement to detect three closure in 1.5 seconds
                 if eye_cls_counter >= EYE_CLS_THRESHOLD:
-                    timer_cls_three_times.start()
+                    # timer_cls_three_times.start()
                     three_time_counter += 1 
                     first_time_flag = True
                     eye_cls_counter = 0
@@ -328,6 +334,8 @@ def blinking_detection(start,cap):
                 utils.colorBackgroundText(frame,  f'RX_THRESHOLD: {rx_eye_threshold}' + f'LX_TRESHOLD: {lx_eye_threshold}', FONTS, 0.7, (30,300),2)
                 utils.colorBackgroundText(frame,  f'RX_VALUE: {rvDistance}' + f'LX_VALUE: {rvDistance}', FONTS, 0.7, (30,350),2)
                 utils.colorBackgroundText(frame,  f'Total Three Times Closure: {three_time_counter}', FONTS, 0.7, (30,400),2)
+                utils.colorBackgroundText(frame,  f'Eyes closure counter: {eye_cls_counter}', FONTS, 0.7, (30,450),2)
+                utils.colorBackgroundText(frame,  f'3 Times Timer: {timer_cls_three_times.elapsed_time / math.pow(10,3)}', FONTS, 0.7, (30,500),2)
 
                 cv.polylines(frame,  [np.array([mesh_coords[p] for p in LEFT_EYE ], dtype=np.int32)], True, utils.GREEN, 1, cv.LINE_AA)
                 cv.polylines(frame,  [np.array([mesh_coords[p] for p in RIGHT_EYE ], dtype=np.int32)], True, utils.GREEN, 1, cv.LINE_AA)
