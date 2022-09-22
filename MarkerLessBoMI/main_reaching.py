@@ -7,6 +7,7 @@ from socket import fromshare
 import sys
 from tracemalloc import stop
 from turtle import color
+from unittest import result
 import numpy as np
 from numpy import asarray,savetxt
 import pandas as pd
@@ -28,6 +29,8 @@ import math
 # For pygame
 import pygame
 from sklearn.metrics import RocCurveDisplay
+from scripts import nose_detector
+from scripts.nose_detector import nose_calib
 # For reaching task
 from scripts.reaching import Reaching
 from scripts.stopwatch import StopWatch
@@ -57,9 +60,7 @@ pyautogui.PAUSE = 0.01  # set fps of cursor to 100Hz ish when mouse_enabled is T
 lx_threshold = 0
 rx_threshold = 0
 
-# if fsm_state == False --> control the base
-# if fsm_State == True --> control the arm
-fsm_state = False
+
 
 # left_mouse_click variable is managed by eyes closure
 # closing eyes for 1 seconds corresponds to click the mouse
@@ -135,13 +136,19 @@ class MainApplication(tk.Frame):
         self.btn_calib["state"] = "disabled"
         self.btn_calib.config(font=("Arial", self.font_size))
         self.btn_calib.grid(row=1, column=0, columnspan=2, padx=20, pady=(20, 30), sticky='nesw')
-        self.calib_duration = 30000
+        self.calib_duration = 60000
 
         #Eyes Calibration Button
         self.btn_eyes_calib = Button(parent, text="Eyes Calibration", command=self.eyes_calibration)
         self.btn_eyes_calib["state"] = "normal"
         self.btn_eyes_calib.config(font=("Arial", self.font_size))
         self.btn_eyes_calib.grid(row=2, column=6, columnspan=2, padx=20, pady=(20, 30), sticky='nesw')
+
+        #Nose Calibration Button
+        self.btn_eyes_calib = Button(parent, text="Nose Calibration", command=self.nose_calibration)
+        self.btn_eyes_calib["state"] = "normal"
+        self.btn_eyes_calib.config(font=("Arial", self.font_size))
+        self.btn_eyes_calib.grid(row=3, column=6, columnspan=2, padx=20, pady=(20, 30), sticky='nesw')
 
         #Show webcam button
         self.btn_webcam = Button(parent,text="Show Webcam",command=self.disp_webcam,bg="blue")
@@ -253,6 +260,12 @@ class MainApplication(tk.Frame):
         lx_threshold, rx_threshold= eyes_calib()
         self.btn_tiago_prt["state"] = "normal"
 
+    def nose_calibration(self):
+        global nose_threshold
+        self.w = popupWindow(self.master, "You will now start nose calibration.")
+        self.master.wait_window(self.w.top)
+        nose_threshold =nose_calib()
+        self.btn_tiago_prt["state"] = "normal"
 
     def train_map(self):
         # check whether calibration file exists first
@@ -498,7 +511,7 @@ class TIAGoPracticeApplication(tk.Frame):
         #/////////////CONNECT WITH SERVER/////////////////////////////#
         #If parameter = True ---> start the connection
         #if parameter = False --> close connection
-        manage_connection_server(True)
+        #manage_connection_server(True)
 
         #////////////////BUTTONS FUNCTION CALLBACK////////////////////////#
 
@@ -559,12 +572,20 @@ def compute_calibration(drPath, calib_duration, lbl_calib, num_joints, joints):
     cap = cv2.VideoCapture(0)
     r = Reaching()
 
+    #video_calib_rec folder path
+    rec_folder=os.path.dirname(os.path.abspath(__file__)) + "/video_calib_rec/"
+
+    # Define the codec and create VideoWriter object
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    out = cv2.VideoWriter(rec_folder + 'output.avi', fourcc, 20.0, (640, 480))
+ 
     # The clock will be used to control how fast the screen updates. Stopwatch to count calibration time elapsed
     clock = pygame.time.Clock()
     timer_calib = StopWatch()
 
     # initialize MediaPipe Pose
     mp_holistic = mp.solutions.holistic
+    map_face_mesh = mp.solutions.face_mesh
     holistic = mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5,
                                     smooth_landmarks=False)
 
@@ -579,8 +600,8 @@ def compute_calibration(drPath, calib_duration, lbl_calib, num_joints, joints):
     # start thread for OpenCV. current frame will be appended in a queue in a separate thread
     q_frame = queue.Queue()
     cal = 1  # if cal==1 (meaning during calibration) the opencv thread will display the image
-    opencv_thread = Thread(target=get_data_from_camera, args=(cap, q_frame, r, cal))
-    opencv_thread.start()
+    # opencv_thread = Thread(target=save_video_calib, args=(cap, q_frame, r, cal))
+    # opencv_thread.start()
     print("openCV thread started in calibration.")
 
     # initialize thread for mediapipe operations
@@ -593,27 +614,94 @@ def compute_calibration(drPath, calib_duration, lbl_calib, num_joints, joints):
     timer_calib.start()
 
     print("main thread: Starting calibration...")
+    
+    with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confidence=0.5) as face_mesh:
+    
+        while not r.is_terminated:
 
-    while not r.is_terminated:
+            if timer_calib.elapsed_time > calib_duration:
+                r.is_terminated = True
+            
+            # reads frames from a camera 
+            # ret checks return at each frame
+            ret, frame = cap.read() 
 
-        if timer_calib.elapsed_time > calib_duration:
-            r.is_terminated = True
+            q_frame.put(frame)
+                        
+            # get current value of body
+            body_calib.append(np.copy(body))
 
-        # get current value of body
-        body_calib.append(np.copy(body))
+            # update time elapsed label
+            time_remaining = int((calib_duration - timer_calib.elapsed_time) / 1000)
+            lbl_calib.configure(text='Calibration time: ' + str(time_remaining))
+            lbl_calib.update()
 
-        # update time elapsed label
-        time_remaining = int((calib_duration - timer_calib.elapsed_time) / 1000)
-        lbl_calib.configure(text='Calibration time: ' + str(time_remaining))
-        lbl_calib.update()
+            # Flip the image horizontally for a later selfie-view display, and convert the BGR image to RGB.
+            #image = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2RGB)     
 
-        # --- Limit to 50 frames per second
-        clock.tick(50)
+            rgb_frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+
+            #frame = cv.resize(frame, None, fx=1.5, fy=1.5, interpolation=cv.INTER_CUBIC)
+
+            #Extract height and width
+            frame_height, frame_width= frame.shape[:2]
+        
+            #Process holistic
+            holistic_result = holistic.process(rgb_frame)
+
+            #process face mesh
+            face_mesh_results  = face_mesh.process(rgb_frame)
+            
+            if face_mesh_results.multi_face_landmarks:
+                mesh_coords = landmarksDetection(rgb_frame, face_mesh_results, False)
+
+            if holistic_result.pose_landmarks:
+                #Extract all the points processed by Mediapipe
+                right_shoulder_x = holistic_result.pose_landmarks.landmark[mp_holistic.PoseLandmark.RIGHT_SHOULDER].x * frame_width
+                right_shoulder_y = holistic_result.pose_landmarks.landmark[mp_holistic.PoseLandmark.RIGHT_SHOULDER].y * frame_height
+                left_shoulder_x = holistic_result.pose_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_SHOULDER].x * frame_width
+                left_shoulder_y = holistic_result.pose_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_SHOULDER].y * frame_height
+                nose_tip_x = holistic_result.pose_landmarks.landmark[mp_holistic.PoseLandmark.NOSE].x * frame_width
+                nose_tip_y = holistic_result.pose_landmarks.landmark[mp_holistic.PoseLandmark.NOSE].y * frame_height
+                left_eye_centre_x = holistic_result.pose_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_EYE].x * frame_width
+                left_eye_centre_y = holistic_result.pose_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_EYE].y * frame_height
+                right_eye_centre_x = holistic_result.pose_landmarks.landmark[mp_holistic.PoseLandmark.RIGHT_EYE].x * frame_width
+                right_eye_centre_y = holistic_result.pose_landmarks.landmark[mp_holistic.PoseLandmark.RIGHT_EYE].y * frame_height
+
+
+
+                #print all the points for shoulders nose tip and eyes
+
+                #if shoulders are selected
+                if joints[2, 0] == 1:
+                    cv.circle(frame,(int(left_shoulder_x),int(left_shoulder_y)),radius=5,color=utils.RED,thickness=-1)
+                    cv.circle(frame,(int(right_shoulder_x),int(right_shoulder_y)),radius=5,color=utils.RED,thickness=-1)
+                
+                #If nose is selected
+                if joints[0, 0] == 1:
+                    cv.circle(frame,(int(nose_tip_x),int(nose_tip_y)),radius=5,color=utils.RED,thickness=-1)
+                
+                #If eyes are selected
+                if joints[1, 0] == 1:
+                    cv.polylines(frame,  [np.array([mesh_coords[p] for p in LEFT_EYE ], dtype=np.int32)], True, utils.GREEN, 1, cv.LINE_AA)
+                    cv.polylines(frame,  [np.array([mesh_coords[p] for p in RIGHT_EYE ], dtype=np.int32)], True, utils.GREEN, 1, cv.LINE_AA)
+                    cv.circle(frame,(int(left_eye_centre_x),int(left_eye_centre_y)),radius=2,color=utils.RED,thickness=-1)
+                    cv.circle(frame,(int(right_eye_centre_x),int(right_eye_centre_y)),radius=2,color=utils.RED,thickness=-1)
+
+
+            # output the frame
+            out.write(frame) 
+            # The original input frame is shown in the window 
+            cv2.imshow('Output', frame)
+            
+            # --- Limit to 50 frames per second
+            clock.tick(50)
 
     # Stop the game engine and release the capture
     holistic.close()
     print("pose estimation object released in calibration.")
     cap.release()
+    out.release()
     cv2.destroyAllWindows()
     print("openCV object released in calibration.")
 
@@ -1007,7 +1095,7 @@ def initialize_base_practice(self, dr_mode, drPath, num_joints, joints):
     :param num_joints: the number of joints used to teleoperate TIAgo
     :param joints: type of joints used to teleoperate TIAGo
     """
-    global holistic,cap, base_state_teleop,controlling 
+    global holistic,cap, base_state_teleop,controlling,nose_threshold
 
     # --- SEND TO THE SERVER THE COMMAND TO EXECUTE THE CORRECT BASH FILE ---#
     if self.selected_map == 'Simple Office':
@@ -1042,7 +1130,9 @@ def initialize_base_practice(self, dr_mode, drPath, num_joints, joints):
     #reaching_functions.initialize_targets(r)
 
     # load BoMI forward map parameters for converting body landmarks into cursor coordinates
+    print("La modalità inserita e':" +str(dr_mode))
     map = load_bomi_map(dr_mode, drPath)
+    
 
     # initialize MediaPipe Pose
     mp_holistic = mp.solutions.holistic
@@ -1077,7 +1167,7 @@ def initialize_base_practice(self, dr_mode, drPath, num_joints, joints):
     print("mediapipe thread started in customization.")
 
     #Init Blinkinkg Eyes Detection
-    init_blinking_detection(True,lx_threshold,rx_threshold, cap)
+    init_blinking_detection(True,lx_threshold,rx_threshold, cap,nose_threshold)
 
     # Define some colors
     BLACK = (0, 0, 0)
@@ -1395,7 +1485,7 @@ def initialize_arm_practice(self, dr_mode, drPath, num_joints, joints):
     :param drPath: path to load the BoMI forward map
     :return:
     """
-    global controlling
+    global controlling,nose_threshold
 
     
     # --- SEND TO THE SERVER THE COMMAND TO EXECUTE THE CORRECT BASH FILE ---#
@@ -1470,7 +1560,7 @@ def initialize_arm_practice(self, dr_mode, drPath, num_joints, joints):
 
 
     #Init Blinkinkg Eyes Detection
-    init_blinking_detection(True,lx_threshold,rx_threshold, cap)
+    init_blinking_detection(True,lx_threshold,rx_threshold, cap,nose_threshold)
 
 
     # Define some colors
@@ -1841,7 +1931,7 @@ def initialize_free_mode(self, dr_mode, drPath, num_joints, joints):
     :param num_joints: the number of joints used to teleoperate TIAgo
     :param joints: type of joints used to teleoperate TIAGo
     """
-    global holistic,cap, base_state_teleop,controlling 
+    global holistic,cap, base_state_teleop,controlling,nose_threshold,fsm_state
     # --- SEND TO THE SERVER THE COMMAND TO EXECUTE THE CORRECT BASH FILE ---#
     if self.selected_map == 'Simple Office':
         bytes_to_send=parse_bash_file(SIMPLE_OFFICE)
@@ -1904,7 +1994,7 @@ def initialize_free_mode(self, dr_mode, drPath, num_joints, joints):
     print("mediapipe thread started in customization.")
 
     #Init Blinkinkg Eyes Detection
-    init_blinking_detection(True,lx_threshold,rx_threshold, cap)
+    init_blinking_detection(True,lx_threshold,rx_threshold, cap,nose_threshold)
 
     # Define some colors
     BLACK = (0, 0, 0)
@@ -1958,6 +2048,8 @@ def initialize_free_mode(self, dr_mode, drPath, num_joints, joints):
     
     # -------- Main Program Loop -----------##
     while not r.is_terminated:
+        if not fsm_state.empty():
+            free_mode = fsm_state.get()
         if free_mode == False:
             controlling = "base"
             update_teleoperation_state(controlling)
@@ -1965,8 +2057,11 @@ def initialize_free_mode(self, dr_mode, drPath, num_joints, joints):
             r.control_arm = False
             state_button = "None"
             while free_mode == False:
+                if not fsm_state.empty():
+                    free_mode=fsm_state.get()
+
                 # -- Nine Regions GUI -- #
-                while base_state_var == False and state_button == "None":
+                while base_state_var == False and fsm_state.empty() and free_mode == False: #state_button == "None":
                     if not base_state.empty():
                         base_state_var = base_state.get()
                         published_nine_regions = False
@@ -2092,8 +2187,11 @@ def initialize_free_mode(self, dr_mode, drPath, num_joints, joints):
                         # --- Limit to 50 frames per second
                         clock.tick(50)
 
+                if not fsm_state.empty():
+                    free_mode = fsm_state.get()
+
                 # -- Odom GUI -- #
-                while base_state_var == True and state_button == "None":
+                while base_state_var == True and fsm_state.empty() and free_mode==False: #state_button == "None":
                     if not base_state.empty():
                         base_state_var = base_state.get() 
                         published_odom = False
@@ -2240,6 +2338,9 @@ def initialize_free_mode(self, dr_mode, drPath, num_joints, joints):
                         # --- Limit to 50 frames per second
                         clock.tick(50)
 
+                if not fsm_state.empty():
+                    free_mode = fsm_state.get()
+
         else:
             r.control_arm = True
             r.control_base = False
@@ -2247,9 +2348,12 @@ def initialize_free_mode(self, dr_mode, drPath, num_joints, joints):
             update_teleoperation_state(controlling)
             state_button = "None"
             while free_mode == True:
+                
+                if not fsm_state.empty():
+                    free_mode = fsm_state.get()
 
                 # -- 2D Vector GUI -- #
-                while arm_state_var == False and state_button == "None":
+                while arm_state_var == False and fsm_state.empty() and free_mode == True: #state_button == "None":
                     if not arm_state.empty():
                         arm_state_var = arm_state.get()
                         published_2D_vector = False
@@ -2454,8 +2558,11 @@ def initialize_free_mode(self, dr_mode, drPath, num_joints, joints):
                         # --- Limit to 50 frames per second
                         clock.tick(50)
                 
+                if not fsm_state.empty():
+                    free_mode = fsm_state.get()
+
                 # -- 1D Vector GUI -- #
-                while arm_state_var == True and state_button == "None":
+                while arm_state_var == True and fsm_state.empty() and free_mode == True: #state_button == "None":
                     if not arm_state.empty():
                         arm_state_var = arm_state.get()
                         published_1D_vector = False
@@ -2583,7 +2690,9 @@ def initialize_free_mode(self, dr_mode, drPath, num_joints, joints):
 
                         # --- Limit to 50 frames per second
                         clock.tick(50)
-        
+
+                if not fsm_state.empty():
+                    free_mode = fsm_state.get()
 
 def save_parameters(self, drPath):
     """
@@ -2811,6 +2920,36 @@ def get_data_from_camera(cap, q_frame, r, cal):
         if not r.is_paused:
             ret, frame = cap.read()
             q_frame.put(frame)
+            # if cal == 1:
+            #    cv2.imshow('current frame', frame)
+    print('OpenCV thread terminated.')
+
+def save_video_calib(cap, q_frame, r, cal):
+    '''
+    function that runs in the thread to capture current frame and put it into the queue
+    :param cap: object of OpenCV class
+    :param q_frame: queue to store current frame
+    :param r: object of Reaching class
+    :return:
+    '''
+    #Define video_calib path
+    video_calib_path = os.path.dirname(os.path.abspath(__file__)) + "/video_calib_rec/"
+
+    # Define the codec and create VideoWriter object
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    out = cv2.VideoWriter(video_calib_path + 'calibration.avi', fourcc, 20.0, (640, 480))
+
+    while not r.is_terminated:
+        if not r.is_paused:
+            ret, frame = cap.read()
+            q_frame.put(frame)
+            
+            # output the frame
+            out.write(frame) 
+            
+            # The original input frame is shown in the window 
+            cv2.imshow('Original', frame)
+        
             # if cal == 1:
             #    cv2.imshow('current frame', frame)
     print('OpenCV thread terminated.')
