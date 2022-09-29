@@ -93,7 +93,7 @@ def nose_calib():
                 break
        
         max_x_component = np.max(nose_x_components)
-        min_x_component = np.min(nose_y_components)
+        min_x_component = np.min(nose_x_components)
 
         x_component_range = max_x_component - min_x_component
         x_range_percentage = x_component_range * .35
