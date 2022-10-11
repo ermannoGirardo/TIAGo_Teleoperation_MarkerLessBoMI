@@ -41,6 +41,9 @@ IV. Execute **main_reaching.py** inside **MarkerLessBoMI** folder,  after some s
 
 <p align="center"> Figure 1: BoMI Main Program GUI </p>
 
+As you can see ROS Side the only script that you have to execute manually is **server_socket.py**.
+
+
 ## BoMI Main Program Brief Explanation
 As you can see in the figure above, the home page of the BoMI main program has different functionalities.
 In particular:
@@ -81,13 +84,6 @@ The user can choose between three different modes:
 
 ## BoMI Main Program Content Description
 In addition to **main_reaching.py** script there are also others python scripts that allow main program to work:
-
-
-
-
-
-
-
 
 ![Screenshot (16)](https://user-images.githubusercontent.com/48509825/194938795-b6c35a6c-b492-4d66-bf27-3871eefcb6bf.png)
 <p align="center"> Figure 3: Scripts Three MarkerLess BoMI </p>
@@ -139,4 +135,9 @@ The scripts that you have to consider are:
 * **teleoperate_arm.py** is the script demanded to teleoperate TIAGo arm. In particular it defines a class to store variables, methods, subscribers and publishers.
   It contains also subscribers' callback function. For further informations related to TIAGo arm teleoperation see **Chapter 5**.
   
+* **simple_office.sh** is a bash file that is executed when the user want to teleoperate TIAGo in Gazebo simulation environment and the selected map is **Simple Office** in figure 2. In particular it executes a launch file inside **tiago_public_ws** that you have been dowloaded [Click Here!](http://wiki.ros.org/Robots/TIAGo/Tutorials/Installation/InstallUbuntuAndROS), choosing as argument **simple_office** and executes also **cmd_vel_publisher.py** and **teleoperate_arm.py**.
+
+* **simple_office_with_people.sh** is another bash file that is executed when the user selects **Simple Office With People** map.
+  In particular it executes a launch file inside **tiago_public_ws** that you have been dowloaded [Click Here!](http://wiki.ros.org/Robots/TIAGo/Tutorials/Installation/InstallUbuntuAndROS), choosing as argument **simple_office_with_people** and executes also **cmd_vel_publisher.py** and **teleoperate_arm.py**.
+
 
