@@ -109,7 +109,7 @@ In addition to **main_reaching.py** script there are also others python scripts 
 
 * **reaching_functions.py** contains a set of functions used to perform the reaching task
 
-* **server_socket.py** is a copy of the file that runs ROS side. It is essentially the server socket and plays also the role of a decoder to scomppose the information from the client server.
+* **server_socket.py** is a copy of the file that runs ROS side. It is essentially the server socket and plays also the role of a decoder to scomppose the information from the client server. Also publishers and subscribers have been implemented in order to share data via topics.
 
 * **setup.py** is a file with all the packages needed to run BoMI MarkerLess program.
 
@@ -121,4 +121,22 @@ In addition to **main_reaching.py** script there are also others python scripts 
 
 
 ## ROS Side Content Description
+In this section I want to describe briefly **my_tiago** pkg.
+
+![Screenshot (19)](https://user-images.githubusercontent.com/48509825/195090816-866b1ff8-0f0c-4f18-9255-3a0d83bebdb8.png)
+<p align="center"> Figure 4: Scripts Three ROS Side </p>
+
+In figure above there are also some scripts that are not used for simulation purpose.
+The scripts that you have to consider are:
+* **cmd_vel_publisher.py** is the script demanded to teleoperate TIAGo mobile base. In particular it contains a class used to share variables, methods, publishers and subscribers in order to receive data from **server_socket.py** and it publishes velocity commands in order to move TIAGo and also target position to be reached through move base action. It contains also subscribers' callback functions. For further informations related to base teleoperation see **Chapter 4**.
+
+* **image_publisher.py** is not used for our purpose. It is simply a publisher via TCP/IP communication of the information acquired from TIAGo RGB-D camera.
+
+* **image_server_TCP.py** is the script that receive the information published from **image_publisher.py** 
+
+* **server_socket.py** has been already described. It is the first script to launch in order to wait client request connection.
+
+* **teleoperate_arm.py** is the script demanded to teleoperate TIAGo arm. In particular it defines a class to store variables, methods, subscribers and publishers.
+  It contains also subscribers' callback function. For further informations related to TIAGo arm teleoperation see **Chapter 5**.
+  
 
