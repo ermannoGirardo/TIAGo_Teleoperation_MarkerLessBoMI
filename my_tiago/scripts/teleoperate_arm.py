@@ -40,6 +40,15 @@ class TeleoperationArm:
         self.min_z = 0.45 #minimum altitude
         self.max_z = 1.3  #maximum altitude
         self.z_range = 1.3 - 0.45
+
+        # -- TIAGo arm valid space (for TIAGo dual arm) -- #
+        # -- Translation of the arm_tool_link with respect to base_footprint -- #
+        self.dual_min_x = 0.22
+        self.dual_max_x = 0.6
+        self.dual_min_y = -0.6
+        self.dual_max_y = 0.15
+        self.dual_min_z = 0.55
+        self.dual_max_z = 1.1
         
         # -- 1D vector amplitude range -- #
         self.max_1D_amplitude = 450
@@ -119,9 +128,15 @@ def compute_1D_motion(translation):
 
     print("A 1D vector with amplitude: " +str(amplitude) + " and angle: " + str(angle) + " has been detected")
 
-    # -- y = 0.00188889x represent the linear transformation that map 
-    # -- 0 - 450 --> 0 - 0.85
-    transform = 0.00188889
+    if teleoperate_arm.map_name == "real_tiago":
+        # -- y = 0.001222222x represent the linear transformation that map 
+        # -- 0 - 450 --> 0 - 0.55
+        transform = 0.0012222
+
+    else:
+        # -- y = 0.00188889x represent the linear transformation that map 
+        # -- 0 - 450 --> 0 - 0.85
+        transform = 0.00188889
 
     # -- Only two measures of angle are valid --# 
     if angle == 90:
@@ -135,27 +150,53 @@ def compute_1D_motion(translation):
         print("1D vector angle not valid!")
 
     # -- Limit the components to max or min -- #
-
-    # -- Limit the x component --#
-    if translation[0] > teleoperate_arm.max_x:
-        translation[0] = teleoperate_arm.max_x
     
-    elif translation[0] < teleoperate_arm.min_x:
-        translation[0] = teleoperate_arm.min_x
+    # -- If is the version with dual arms TIAGo limit to its right arm workspace -- #
+    if teleoperate_arm.map_name == "real_tiago":
+        # -- Limit the x component --#
+        if translation[0] > teleoperate_arm.dual_max_x:
+            translation[0] = teleoperate_arm.dual_max_x
+        
+        elif translation[0] < teleoperate_arm.dual_min_x:
+            translation[0] = teleoperate_arm.dual_min_x
 
-    # -- Limit the y component -- #
-    if translation[1] > teleoperate_arm.max_y:
-        translation[1] = teleoperate_arm.max_y
+        # -- Limit the y component -- #
+        if translation[1] > teleoperate_arm.dual_max_y:
+            translation[1] = teleoperate_arm.dual_max_y
 
-    elif translation[1] < teleoperate_arm.min_y:
-        translation[1] = teleoperate_arm.min_y
+        elif translation[1] < teleoperate_arm.dual_min_y:
+            translation[1] = teleoperate_arm.dual_min_y
 
-    # -- Limit the z component -- #
-    if translation[2] > teleoperate_arm.max_z:
-        translation[2] = teleoperate_arm.max_z
+        # -- Limit the z component -- #
+        if translation[2] > teleoperate_arm.dual_max_z:
+            translation[2] = teleoperate_arm.dual_max_z
 
-    elif translation[2] < teleoperate_arm.min_z:
-        translation[2] = teleoperate_arm.min_z
+        elif translation[2] < teleoperate_arm.dual_min_z:
+            translation[2] = teleoperate_arm.dual_min_z
+
+
+    # -- If it is the version with one single arm -- #
+    else:
+        # -- Limit the x component --#
+        if translation[0] > teleoperate_arm.max_x:
+            translation[0] = teleoperate_arm.max_x
+        
+        elif translation[0] < teleoperate_arm.min_x:
+            translation[0] = teleoperate_arm.min_x
+
+        # -- Limit the y component -- #
+        if translation[1] > teleoperate_arm.max_y:
+            translation[1] = teleoperate_arm.max_y
+
+        elif translation[1] < teleoperate_arm.min_y:
+            translation[1] = teleoperate_arm.min_y
+
+        # -- Limit the z component -- #
+        if translation[2] > teleoperate_arm.max_z:
+            translation[2] = teleoperate_arm.max_z
+
+        elif translation[2] < teleoperate_arm.min_z:
+            translation[2] = teleoperate_arm.min_z
 
     return translation
 
@@ -183,15 +224,27 @@ def compute_2D_motion(translation):
     # -- Store locally angle (in degree) and amplitude of the vector -- #
     angle = teleoperate_arm.vector_angle
     angle_radians = math.radians(angle)
-    amplitude = teleoperate_arm.vector_amplitude    
+    amplitude = teleoperate_arm.vector_amplitude   
 
-    # -- Amplitude range for 2D vector is [0 - 1006] --#
-    # -- Transform is a factor that map linearly: 
-    # -- [0-450] --> [0 - 0.25] for x component 
-    # -- [0-900] --> [0 - 1] for y component -- #
 
-    transform_x = 0.000555556 #(0.25 / 450)
-    transform_y = 0.001111111 #(1/900)
+    # -- Check if TIAGo is dual arm version --#
+
+    if teleoperate_arm.map_name == "real_tiago":
+
+        # -- Transform is a factor that map linearly: 
+        # -- [0-450] --> [0 - 0.38] for x component 
+        # -- [0-900] --> [0 - 0.75] for y component -- #
+        transform_x = 0.00084444 #(0.38/450)
+        transform_y = 0.00083333 #(0.75/900)
+
+    else:
+
+        # -- Transform is a factor that map linearly: 
+        # -- [0-450] --> [0 - 0.25] for x component 
+        # -- [0-900] --> [0 - 1] for y component -- #
+
+        transform_x = 0.000555556 #(0.25 / 450)
+        transform_y = 0.001111111 #(1/900)
  
     print("Amplitude: " + str(amplitude) + " Angle: " + str(angle))
 
@@ -275,26 +328,51 @@ def compute_2D_motion(translation):
 
     # -- Limit the components to max or min -- #
 
-    # -- Limit the x component --#
-    if translation[0] > teleoperate_arm.max_x:
-        translation[0] = teleoperate_arm.max_x
-    
-    elif translation[0] < teleoperate_arm.min_x:
-        translation[0] = teleoperate_arm.min_x
 
-    # -- Limit the y component -- #
-    if translation[1] > teleoperate_arm.max_y:
-        translation[1] = teleoperate_arm.max_y
+    # -- Check if TIAGo is the dual arm version --#
+    if teleoperate_arm.map_name == "real_tiago":
+        # -- Limit the x component --#
+        if translation[0] > teleoperate_arm.dual_max_x:
+            translation[0] = teleoperate_arm.dual_max_x
+        
+        elif translation[0] < teleoperate_arm.dual_min_x:
+            translation[0] = teleoperate_arm.dual_min_x
 
-    elif translation[1] < teleoperate_arm.min_y:
-        translation[1] = teleoperate_arm.min_y
+        # -- Limit the y component -- #
+        if translation[1] > teleoperate_arm.dual_max_y:
+            translation[1] = teleoperate_arm.dual_max_y
 
-    # -- Limit the z component -- #
-    if translation[2] > teleoperate_arm.max_z:
-        translation[2] = teleoperate_arm.max_z
+        elif translation[1] < teleoperate_arm.dual_min_y:
+            translation[1] = teleoperate_arm.dual_min_y
 
-    elif translation[2] < teleoperate_arm.min_z:
-        translation[2] = teleoperate_arm.min_z
+        # -- Limit the z component -- #
+        if translation[2] > teleoperate_arm.dual_max_z:
+            translation[2] = teleoperate_arm.dual_max_z
+
+        elif translation[2] < teleoperate_arm.dual_min_z:
+            translation[2] = teleoperate_arm.dual_min_z
+
+    else:
+        # -- Limit the x component --#
+        if translation[0] > teleoperate_arm.max_x:
+            translation[0] = teleoperate_arm.max_x
+        
+        elif translation[0] < teleoperate_arm.min_x:
+            translation[0] = teleoperate_arm.min_x
+
+        # -- Limit the y component -- #
+        if translation[1] > teleoperate_arm.max_y:
+            translation[1] = teleoperate_arm.max_y
+
+        elif translation[1] < teleoperate_arm.min_y:
+            translation[1] = teleoperate_arm.min_y
+
+        # -- Limit the z component -- #
+        if translation[2] > teleoperate_arm.max_z:
+            translation[2] = teleoperate_arm.max_z
+
+        elif translation[2] < teleoperate_arm.min_z:
+            translation[2] = teleoperate_arm.min_z
 
     # print("Before Exit Translation is " + str(list(translation)) )
 
@@ -330,7 +408,13 @@ def teleoperate_tiago_arm():
     # -- MoveIt declaration -- #
     #tiago_robot = moveit_commander.RobotCommander()
     #scene = moveit_commander.PlanningSceneInterface()
-    group_name = "arm_torso"
+    while(teleoperate_arm.map_name == None):
+        rospy.sleep(.5)
+    print("map name is: " + teleoperate_arm.map_name)
+    if teleoperate_arm.map_name == "real_tiago":
+        group_name = "right_arm_torso"
+    else:
+        group_name = "arm_torso"
     group = moveit_commander.MoveGroupCommander(group_name)
     group.set_goal_tolerance(0.01)
     group.set_planner_id("SBLKConfigDefault")
