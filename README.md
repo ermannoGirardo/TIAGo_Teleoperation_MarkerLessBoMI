@@ -58,9 +58,14 @@ As you can see in the figure above, the home page of the BoMI main program has d
 In particular:
 * Select the wanted joints to teleoperate TIAGo Robot, **I suggest to use shoulders and nose!**
 * Select the number of components you want to use, that is the number of components extract using dimensionality reduction technique.
-* Once selected the joints and the number of components, clicking on the button **Calibration** is possible to acquire and store body data through 1 minute of body dance
+* Once selected the joints and the number of components, clicking on the button **Calibration** is possible to acquire and store body data through 1 minute of body dance. **NOTE!!** that if you have chosen **2 components** I suggest to you to select only shoulders, instead you have chosen **3 components** I suggest to you to use shoulders + nose. In the video below you can see 1 minute calibration shoulders + nose. **NOTE** that it is important to move first one shoulder maintaning the other one and nose still, then move only the second shoulder and finally only the nose.
+
+https://user-images.githubusercontent.com/48509825/197569147-715e4723-6098-4877-9e4e-f54e2da8f02d.mp4
+
+
+
 * Before starting the calibration, you can fix the webcam clicking on the button **Show Webcam** in order to see the area acquired by the webcam.
-* Calculate BoMI Map choosing Dimensionality Reduction technique among **Principal Component Analysis** (PCA), **AutoEncoder** (AE) and **Variational AutoEncoder** (VAE), for other details about BoMI and dimensionality reduction see Chapter 2. **NOTE** that if you have choosen 3 components you can only use **PCA!**.
+* Calculate BoMI Map choosing Dimensionality Reduction technique among **Principal Component Analysis** (PCA), **AutoEncoder** (AE) and **Variational AutoEncoder** (VAE), for other details about BoMI and dimensionality reduction see Chapter 2. **NOTE** that if you have chosen 3 components you can only use **PCA!**.
 * **Customization** allows to customize BoMI map depending on the calibration, this is not mandatory.
 * The subject can also make practice with BoMI thanks to a dedicated mode, clicking on **Practice** button, this is not mandatory but suggested.
 * Clicking on the button **Eye Calibration** the subject performs 10 seconds eyes calibration. Eyes Calibration is mandatory and will be used by **eye_blink_detector.py** as a source of information in order to detect eye closure.
@@ -68,7 +73,7 @@ In particular:
   See chapter 4 section 7 for more details.
  
 
-https://user-images.githubusercontent.com/48509825/194934596-c1eced3a-17e2-4014-bf48-06ad025df2c7.mp4
+https://user-images.githubusercontent.com/48509825/194934596-c1eced3a-17e2-4014-bf48-06ad025df2c7.mp4 
   
 * Clicking on the button **Nose Calibration** the subject performs 10 seconds nose calibration. Nose Calibration is mandatory and will be used by **nose_detector.py** to compute nose position 
   The calibration has to start with the face towards the camera and then move the nose right to an accessible and convenient pose.
