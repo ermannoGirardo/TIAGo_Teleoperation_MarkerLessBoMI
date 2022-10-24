@@ -33,7 +33,9 @@ rv_eye = []
 lv_eye = []
 lx_eye_threshold = None
 rx_eye_threshold = None
+nose_threshold = 0
 controlling = ""
+
 #In order to track the base and arm FSM states
 base_state = queue.Queue()
 base_var = False
@@ -41,6 +43,13 @@ base_state.put(base_var)
 arm_state =queue.Queue()
 arm_var = False
 arm_state.put(arm_var)
+
+# if fsm_state == False --> control the base
+# if fsm_State == True --> control the arm
+fsm_state = queue.Queue()
+fsm_var = False
+fsm_state.put(fsm_var)
+
 
 
 #mouse coordinates
@@ -69,6 +78,9 @@ LEFT_EYEBROW =[ 336, 296, 334, 293, 300, 276, 283, 282, 295, 285 ]
 # right eyes indices
 RIGHT_EYE=[ 33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161 , 246 ]  
 RIGHT_EYEBROW=[ 70, 63, 105, 66, 107, 55, 65, 52, 53, 46 ]
+
+# nose tip
+NOSE_TIP = [94]
 
 map_face_mesh = mp.solutions.face_mesh
 # camera object 
@@ -168,10 +180,11 @@ def blinkRatio(img, landmarks, right_indices, left_indices):
     return ratio, lvDistance, rvDistance
 
 
-def init_blinking_detection(start,lx_threshold,rx_threshold,cap):
-    global lx_eye_threshold, rx_eye_threshold
+def init_blinking_detection(start,lx_threshold,rx_threshold,cap,nose_thr):
+    global lx_eye_threshold, rx_eye_threshold,nose_threshold
     lx_eye_threshold = lx_threshold
     rx_eye_threshold = rx_threshold
+    nose_threshold = nose_thr
     if start:
         print("Blinking Eyes Detection Thread is starting")
         blinking_thread = threading.Thread(target=blinking_detection,args=(start,cap))
@@ -179,9 +192,10 @@ def init_blinking_detection(start,lx_threshold,rx_threshold,cap):
 
 def blinking_detection(start,cap):
 
-    global frame_counter, lx_eye_threshold, rx_eye_threshold, map_face_mesh
-    global CEF_COUNTER, CEF_WINK_COUNTER, TOTAL_BLINKS, TOTAL_EYES_CLS, TOTAL_WINK, cls_eyes_flag, CLOSED_EYES_FRAME, FONTS,CLS_RATIO_THRESHOLD, LEFT_EYE, RIGHT_EYE
+    global frame_counter, lx_eye_threshold, rx_eye_threshold, map_face_mesh,nose_threshold
+    global CEF_COUNTER, CEF_WINK_COUNTER, TOTAL_BLINKS, TOTAL_EYES_CLS, TOTAL_WINK, cls_eyes_flag, CLOSED_EYES_FRAME, FONTS,CLS_RATIO_THRESHOLD, LEFT_EYE, RIGHT_EYE,NOSE_TIP
     global eye_detector_fsm, base_var,base_state,arm_var,arm_state, x_coordinate,y_coordinate, map_name,controlling
+    global fsm_state,fsm_var
     # camera object 
     # camera = cv.VideoCapture(0)
 
@@ -189,11 +203,20 @@ def blinking_detection(start,cap):
     timer_cls_eyes = StopWatch() 
     timer_cls_three_times = StopWatch()
     timer_wink = StopWatch()
+
+    #stopwatch for counting nose motion
+    timer_nose = StopWatch()
     
+    timer_cls_three_times.start()
+
     #counters 
     eye_cls_counter = 0  
     three_time_counter = 0 
     first_time_flag = True
+    nose_counter = 0
+    nose_real_counter = 0
+    first_time_nose = True
+    completed_nose_motion = 0
 
     #flags
     winking_flag = False
@@ -224,7 +247,37 @@ def blinking_detection(start,cap):
             if results.multi_face_landmarks:
                 mesh_coords = landmarksDetection(frame, results, False)
                 ratio,lvDistance,rvDistance = blinkRatio(frame, mesh_coords, RIGHT_EYE, LEFT_EYE)
+                nose = mesh_coords[NOSE_TIP[0]]
+                
+                #Nose detection 2 motions in two seconds
+                # x component is minor that threshold
+                if nose[0] < nose_threshold:
+                    if first_time_nose:
+                        timer_nose.start()
+                        first_time_nose = False
+                    nose_counter += 1
+                
+                else:
+                    #To detect the intention of move nose
+                    if nose_counter > 3:
+                        nose_real_counter += 1
+                        nose_counter = 0
+                        
 
+                # if 2 seconds are elapsed after the first nose motion restore the flag and the counter
+                if timer_nose.elapsed_time > 2000:
+                    first_time_nose = True
+                    nose_real_counter = 0
+
+                #if 2 nose motions have been done in two seconds
+                if nose_real_counter == 2:
+                    nose_real_counter = 0
+                    first_time_nose = True
+                    completed_nose_motion += 1
+                    fsm_var = not fsm_var
+                    fsm_state.put(fsm_var)
+
+                    
                 #Both eyes closed
                 if (lvDistance <= lx_eye_threshold) and (rvDistance <= rx_eye_threshold):
                     if cls_eyes_flag == False:
@@ -233,15 +286,10 @@ def blinking_detection(start,cap):
                         if first_time_flag:
                             timer_cls_three_times.start()
                             first_time_flag = False
-                    if (timer_cls_three_times.elapsed_time > 1500):
-                        timer_cls_three_times.start()
-                        eye_cls_counter = 0
-                        first_time_flag = True
-
                     CEF_COUNTER +=1
                     # cv.putText(frame, 'Blink', (200, 50), FONTS, 1.3, utils.PINK, 2)
                     utils.colorBackgroundText(frame,  f'Blink', FONTS, 1.7, (int(frame_height/2), 100), 2, utils.YELLOW, pad_x=6, pad_y=6, )
-
+                
                 else:
                     timer_cls_eyes.start()
                     cls_eyes_flag = False
@@ -250,7 +298,15 @@ def blinking_detection(start,cap):
                         TOTAL_BLINKS +=1
                         CEF_COUNTER =0
                         eye_cls_counter +=1
-               
+
+                # -- If timer elapsed restore the counters --#
+                if (timer_cls_three_times.elapsed_time > 3000):
+                    # timer_cls_three_times.start()
+                    eye_cls_counter = 0
+                    first_time_flag = True
+                
+                   
+        
                 #winking
                 if (lvDistance <= lx_eye_threshold) ^ (rvDistance <= rx_eye_threshold):
                     if winking_flag == False:
@@ -270,7 +326,7 @@ def blinking_detection(start,cap):
                 
                 # if statement to detect three closure in 1.5 seconds
                 if eye_cls_counter >= EYE_CLS_THRESHOLD:
-                    timer_cls_three_times.start()
+                    # timer_cls_three_times.start()
                     three_time_counter += 1 
                     first_time_flag = True
                     eye_cls_counter = 0
@@ -328,11 +384,19 @@ def blinking_detection(start,cap):
                 utils.colorBackgroundText(frame,  f'RX_THRESHOLD: {rx_eye_threshold}' + f'LX_TRESHOLD: {lx_eye_threshold}', FONTS, 0.7, (30,300),2)
                 utils.colorBackgroundText(frame,  f'RX_VALUE: {rvDistance}' + f'LX_VALUE: {rvDistance}', FONTS, 0.7, (30,350),2)
                 utils.colorBackgroundText(frame,  f'Total Three Times Closure: {three_time_counter}', FONTS, 0.7, (30,400),2)
-
+                utils.colorBackgroundText(frame,  f'Eyes closure counter: {eye_cls_counter}', FONTS, 0.7, (30,450),2)
+                # utils.colorBackgroundText(frame,  f'3 Times Timer: {timer_cls_three_times.elapsed_time / math.pow(10,3)}', FONTS, 0.7, (30,500),2)
+                # utils.colorBackgroundText(frame,  f'Nose threshold: {nose_threshold}', FONTS, 0.7, (30,500),2)
+                # utils.colorBackgroundText(frame,  f'Nose completed motion: {nose_real_counter}', FONTS, 0.7, (30,550),2)
+                utils.colorBackgroundText(frame,  f'Nose thr: {nose_threshold}', FONTS, 0.7, (30,600),2)
+                utils.colorBackgroundText(frame,  f'Nose position: {nose[0]}', FONTS, 0.7, (30,550),2)
+                utils.colorBackgroundText(frame,  f'Nose timer: {timer_nose.elapsed_time / math.pow(10,3)}', FONTS, 0.7, (30,650),2)
+                utils.colorBackgroundText(frame,  f'Two Nose motion: {completed_nose_motion}', FONTS, 0.7, (30,500),2)
+                
+                #Draw eyes countour and nose tip
                 cv.polylines(frame,  [np.array([mesh_coords[p] for p in LEFT_EYE ], dtype=np.int32)], True, utils.GREEN, 1, cv.LINE_AA)
                 cv.polylines(frame,  [np.array([mesh_coords[p] for p in RIGHT_EYE ], dtype=np.int32)], True, utils.GREEN, 1, cv.LINE_AA)
-
-
+                cv.circle(frame,(nose[0],nose[1]),radius=5,color=utils.RED,thickness=-1)
 
             # calculating  frame per seconds FPS
             end_time = time.time()-start_time
@@ -364,6 +428,8 @@ def eyes_calib():
     """
     This function is used in order to tune the threshold parameter to detected eyes blinking
     @return: 
+        lx_eye_threshold: the threshold for the left eye
+        rx_eye_threshold: the threshold for the right eye
     """
     with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confidence=0.5) as face_mesh:
 
@@ -402,7 +468,7 @@ def eyes_calib():
                 
                 cv.polylines(frame,  [np.array([mesh_coords[p] for p in LEFT_EYE ], dtype=np.int32)], True, utils.GREEN, 1, cv.LINE_AA)
                 cv.polylines(frame,  [np.array([mesh_coords[p] for p in RIGHT_EYE ], dtype=np.int32)], True, utils.GREEN, 1, cv.LINE_AA)
-
+                
 
 
             # calculating  frame per seconds FPS
