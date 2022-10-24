@@ -64,7 +64,7 @@ https://user-images.githubusercontent.com/48509825/197569147-715e4723-6098-4877-
 
 
 
-* Before starting the calibration, you can fix the webcam clicking on the button **Show Webcam** in order to see the area acquired by the webcam.
+* Before starting the calibration, you can fix the webcam clicking on the button **Show Webcam** in order to see the area acquired by the webcam, press *esc* to close.
 * Calculate BoMI Map choosing Dimensionality Reduction technique among **Principal Component Analysis** (PCA), **AutoEncoder** (AE) and **Variational AutoEncoder** (VAE), for other details about BoMI and dimensionality reduction see Chapter 2. **NOTE** that if you have chosen 3 components you can only use **PCA!**.
 * **Customization** allows to customize BoMI map depending on the calibration, this is not mandatory.
 * The subject can also make practice with BoMI thanks to a dedicated mode, clicking on **Practice** button, this is not mandatory but suggested.
