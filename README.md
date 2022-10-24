@@ -30,14 +30,23 @@ In order to run the overall architecture please follow the next steps:
 
 I. Check ip address of your Ubuntu machine
 
-II. Modify the ip address inside  **socket_client.py** inside **MarkerLessBoMI/scripts**, in particular it is declared inside **client_connected** function
+II. Create your ros workspace, copy and paste **my_tiago** pkg into your workspace and build it. 
 
-III. Execute **server_socket.py** inside **my_tiago/scripts**, in order to allow ROS side machine to receive data from BoMI Main Program
+III. Modify the ip address in  **socket_client.py** inside **MarkerLessBoMI/scripts**, in particular it is declared inside **client_connected** function
 
-IV. Execute **main_reaching.py** inside **MarkerLessBoMI** folder,  after some seconds should be appear the interface of BoMI main program, in figure below
+IV. Copy and paste the three bash files (**simple_office.sh**, **simple_office_with_people.sh** and **real_tiago.sh**)
+      If you go into your ros_ws and enter *tree* you should have something like the picture above!
+      
+![Schermata da 2022-10-24 17-31-06](https://user-images.githubusercontent.com/48509825/197566132-4e41da5b-8c74-4356-8610-26c3004f8afc.png)
 
 
-![Screenshot (13)](https://user-images.githubusercontent.com/48509825/194919142-7b5df788-e2a3-4275-bfbf-31c2b10b4e4e.png)
+V. Execute **server_socket.py** inside **my_tiago/scripts**, in order to allow ROS side machine to receive data from BoMI Main Program.
+
+VI. Execute **main_reaching.py** inside **MarkerLessBoMI** folder,  after some seconds should be appear the interface of BoMI main program, in figure below
+
+
+![Screenshot (21)](https://user-images.githubusercontent.com/48509825/197547322-7aeb73ac-b4b7-4b4a-8126-db454487389e.png)
+
 
 <p align="center"> Figure 1: BoMI Main Program GUI </p>
 
@@ -47,10 +56,11 @@ As you can see ROS Side the only script that you have to execute manually is **s
 ## BoMI Main Program Brief Explanation
 As you can see in the figure above, the home page of the BoMI main program has different functionalities.
 In particular:
-* Select the wanted joints to teleoperate TIAGo Robot
-* Once selected the joints, clicking on the button **Calibration** is possible to acquire and store body data through 1 minute of body dance
+* Select the wanted joints to teleoperate TIAGo Robot, **I suggest to use shoulders and nose!**
+* Select the number of components you want to use, that is the number of components extract using dimensionality reduction technique.
+* Once selected the joints and the number of components, clicking on the button **Calibration** is possible to acquire and store body data through 1 minute of body dance
 * Before starting the calibration, you can fix the webcam clicking on the button **Show Webcam** in order to see the area acquired by the webcam.
-* Calculate BoMI Map choosing Dimensionality Reduction technique among **Principal Component Analysis** (PCA), **AutoEncoder** (AE) and **Variational AutoEncoder** (VAE), for other details about BoMI and dimensionality reduction see Chapter 2
+* Calculate BoMI Map choosing Dimensionality Reduction technique among **Principal Component Analysis** (PCA), **AutoEncoder** (AE) and **Variational AutoEncoder** (VAE), for other details about BoMI and dimensionality reduction see Chapter 2. **NOTE** that if you have choosen 3 components you can only use **PCA!**.
 * **Customization** allows to customize BoMI map depending on the calibration, this is not mandatory.
 * The subject can also make practice with BoMI thanks to a dedicated mode, clicking on **Practice** button, this is not mandatory but suggested.
 * Clicking on the button **Eye Calibration** the subject performs 10 seconds eyes calibration. Eyes Calibration is mandatory and will be used by **eye_blink_detector.py** as a source of information in order to detect eye closure.
