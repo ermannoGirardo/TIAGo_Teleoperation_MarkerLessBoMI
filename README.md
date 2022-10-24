@@ -14,7 +14,7 @@ In order to be clear as possible, the two machines, call them for semplicity 'Bo
 The two machines are able to communicate thanks to a TCP/IP socket communication, for this reason the two machines have to be under the same network**.
 
 ## 'BoMI Main Program Installing Procedure'
-In order to install BoMI main program (all you need is inside **MarkerLessBoMI** folder you can follow [THIS!](https://github.com/MoroMatteo/markerlessBoMI_FaMa) repositoy.
+In order to install BoMI main program all you need is inside **MarkerLessBoMI** folder you can follow [THIS!](https://github.com/MoroMatteo/markerlessBoMI_FaMa) repository.
 As you can see you can install BoMI main program both on Ubuntu or Windows.
 
 ## 'ROS Side Program Installing Procedure'
