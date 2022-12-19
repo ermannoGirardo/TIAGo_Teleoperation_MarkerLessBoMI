@@ -154,5 +154,9 @@ The scripts that you have to consider are:
 
 * **simple_office_with_people.sh** is another bash file that is executed when the user selects **Simple Office With People** map.
   In particular it executes a launch file inside **tiago_public_ws** that you have been dowloaded [Click Here!](http://wiki.ros.org/Robots/TIAGo/Tutorials/Installation/InstallUbuntuAndROS), choosing as argument **simple_office_with_people** and executes also **cmd_vel_publisher.py** and **teleoperate_arm.py**.
+  
+  ## Free Mode Practice
+  ![image](https://user-images.githubusercontent.com/48509825/208484824-9d424687-0012-4fe9-b892-16f83843c3bf.png)
+
 
 
